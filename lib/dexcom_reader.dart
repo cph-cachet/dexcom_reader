@@ -9,7 +9,6 @@ import 'dart:async';
 
 import 'package:dexcom_reader/plugin/interfaces/dexcom_g7_reader_interface.dart';
 import 'package:flutter/services.dart';
-import 'dexcom_reader_platform_interface.dart';
 import 'dart:io';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter/foundation.dart';

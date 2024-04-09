@@ -87,23 +87,21 @@ class _BleScannerState extends State<BleScanner> {
           title: const Text('BLE Scanner'),
         ),
         body: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Container(
-              height: 250,
-              child: Visibility(
-                visible: _dexDevice != null && _glucose != null,
-                replacement: Container(),
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16.0),
-                      color: Colors.greenAccent.withOpacity(0.2)),
-                  child: ListTile(
-                    title: Text(_dexDevice != null
-                        ? _dexDevice!.platformName
-                        : "No Device Found"),
-                    subtitle: Text("Glucose: $_glucose mmol/L"),
-                  ),
+            Visibility(
+              visible: _dexDevice != null && _glucose != null,
+              replacement: Container(),
+              child: Container(
+                height: 66,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16.0),
+                    color: Colors.greenAccent.withOpacity(0.2)),
+                child: ListTile(
+                  title: Text(_dexDevice != null
+                      ? _dexDevice!.platformName
+                      : "No Device Found"),
+                  subtitle: Text("Glucose: $_glucose mmol/L"),
                 ),
               ),
             ),

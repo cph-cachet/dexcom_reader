@@ -1,8 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
-import 'package:dexcom_reader/plugin/services/state_storage_service.dart';
-
 class EGlucoseRxMessage {
   int statusRaw = 0;
   int clock = 0;
@@ -41,6 +38,7 @@ class EGlucoseRxMessage {
         int glucoseBytes = data.getUint16(offset, Endian.little);
         offset += 2;
         glucoseIsDisplayOnly = (glucoseBytes & 0xf000) > 0;
+        // Perform bitwise AND between glucoseBytes and hex value 0xfff = 111111111111, which extracts the relevant lower 12 bits from the glucoseBytes value after being read in little endian order.
         glucose = glucoseBytes & 0xfff;
 
         state = data.getUint8(offset++);

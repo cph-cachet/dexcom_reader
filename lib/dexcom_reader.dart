@@ -108,7 +108,7 @@ class DexcomG7Reader implements IDexcomG7Reader {
                 print('Dexcom MTU packet ${count++}: $data');
                 if (data.length == 19) {
                   Uint8List packet = Uint8List.fromList(data);
-                  decodeData(packet);
+                  decodeBTEPacket(packet);
                 }
               });
             } catch (e) {
@@ -122,13 +122,13 @@ class DexcomG7Reader implements IDexcomG7Reader {
     }
   }
 
-  Future<void> decodeData(Uint8List packet) async {
+  @override
+  Future<void> decodeBTEPacket(Uint8List packet) async {
     EGlucoseRxMessage data = EGlucoseRxMessage(packet);
     double bloodGlucose = convertReadValToGlucose(data.glucose);
     print("Blood glucose measured is: $bloodGlucose mmol/L");
     StateStorageService storageService = StateStorageService();
-    await storageService.saveGlucoseLevel(data.glucose);
-    /*
+
     final DexGlucosePacket dexGlucosePacket = DexGlucosePacket(
         data.statusRaw,
         data.glucose,
@@ -142,9 +142,12 @@ class DexcomG7Reader implements IDexcomG7Reader {
         data.trend,
         data.age,
         data.valid);
-     */
+
+    await storageService.saveDexGlucosePacket(dexGlucosePacket);
+    await storageService.saveLatestRawGlucose(data.glucose);
   }
 
+  @override
   double convertReadValToGlucose(int val) {
     double glucose = 5.5; // Starting glucose level at val 100
     int baseline = 100; // Baseline value for glucose calculations
@@ -153,7 +156,8 @@ class DexcomG7Reader implements IDexcomG7Reader {
     int stepDifference = val - baseline;
 
     // Ensure we count every full 2-step increment only
-    int fullSteps = stepDifference ~/ 2; // Using integer division to round down to the nearest even number
+    int fullSteps = stepDifference ~/
+        2; // Using integer division to round down to the nearest even number
 
     // Glucose increases by 0.1 mmol/L for each full 2-step increment
     double totalGlucoseChange = fullSteps * 0.1;
@@ -163,8 +167,6 @@ class DexcomG7Reader implements IDexcomG7Reader {
 
     return glucose;
   }
-
-
 
   /*
  double convertReadValToGlucose(int val) {
@@ -193,6 +195,12 @@ class DexcomG7Reader implements IDexcomG7Reader {
   @override
   Future<double> getLatestGlucose() {
     // TODO: implement getLatestGlucose
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<double> getTrend() {
+    // TODO: implement getTrend
     throw UnimplementedError();
   }
 }

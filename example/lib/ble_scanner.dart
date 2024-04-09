@@ -74,7 +74,7 @@ class _BleScannerState extends State<BleScanner> {
     _dexDevice != null
         ? await dexReader.connectToDexDevice(_dexDevice!)
         : null; // If a dexcom device is found, connect to it
-    double? glucose = await storageService.getLatestGlucose();
+    double? glucose = await storageService.getLatestGlucoseLevel();
     setState(() {
       _glucose = glucose;
     });

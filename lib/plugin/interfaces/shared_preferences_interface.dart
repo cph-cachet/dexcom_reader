@@ -4,19 +4,24 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 abstract class IStateStorage {
 
-  Future<void> saveDexDevice(BluetoothDevice device);
+  Future<void> saveBTEDevice(BluetoothDevice device);
 
   Future<void> saveDexGlucosePacket(DexGlucosePacket packet);
 
-  Future<void> getDexGlucosePacket();
+  Future<DexGlucosePacket?> getLatestDexGlucosePacket();
 
-  Future<BluetoothDevice?> getDexDevice();
+  Future<void> addDexGlucosePacket(DexGlucosePacket packet);
 
-  Future<void> saveGlucoseLevel(int glucose);
+  Future<List<DexGlucosePacket>?> getDexGlucosePackets();
 
-  Future<double?> getLatestGlucose();
+  Future<BluetoothDevice?> getDexBluetoothDevice();
 
-  Future<double> getGlucoseFromPeriod(Duration period);
+  Future<void> saveLatestRawGlucose(int glucose);
+
+  Future<double?> getLatestGlucoseLevel();
+
+  Future<double> getGlucoseFromPeriod(DateTime date);
+
 
 
 

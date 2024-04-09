@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:dexcom_reader/dexcom_reader.dart';
+import 'package:dexcom_reader/plugin/services/state_storage_service.dart';
 import 'package:dexcom_reader_example/Components/scan_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -11,9 +14,11 @@ class BleScanner extends StatefulWidget {
 
 class _BleScannerState extends State<BleScanner> {
   DexcomG7Reader dexService = DexcomG7Reader();
+  StateStorageService storageService = StateStorageService();
 
+  BluetoothDevice? _dexDevice;
   List<BluetoothDevice> devices = [];
-  Map<String, List<BluetoothCharacteristic>> deviceCharacteristics = {};
+  double? _glucose;
 
   PermissionStatus btePermissionStatus = PermissionStatus.denied;
   bool isScanning = false;
@@ -52,6 +57,7 @@ class _BleScannerState extends State<BleScanner> {
     super.dispose();
   }
 
+  //Todo: Clean startScanning code and the Flutter widgets for this page
   Future<BluetoothDevice?> startScanning() async {
     DexcomG7Reader dexReader = DexcomG7Reader(); // Initialise plugin
     BluetoothDevice? dexDevice;
@@ -60,12 +66,18 @@ class _BleScannerState extends State<BleScanner> {
     dexDevice = await dexReader.scanForDexDevice();
 
     setState(() {
-      devices.add(dexDevice!);
+      devices.add(
+          dexDevice!); // May not be used depending on if we want to read multiple dexcom devices?'
+      _dexDevice = dexDevice;
     });
 
-    dexDevice != null
-        ? await dexReader.connectToDexDevice(dexDevice)
+    _dexDevice != null
+        ? await dexReader.connectToDexDevice(_dexDevice!)
         : null; // If a dexcom device is found, connect to it
+    double? glucose = await storageService.getLatestGlucose();
+    setState(() {
+      _glucose = glucose;
+    });
   }
 
   @override
@@ -76,23 +88,25 @@ class _BleScannerState extends State<BleScanner> {
         ),
         body: Column(
           children: [
-            if (devices.isNotEmpty)
-              SizedBox(
-                height: 250,
-                child: ListView.builder(
-                  itemCount: devices.length,
-                  itemBuilder: (context, index) {
-                    BluetoothDevice device = devices[index];
-                    return InkWell(
-                      onTap: () async {},
-                      child: ListTile(
-                        title: Text(device.platformName),
-                        subtitle: Text(device.remoteId.toString()),
-                      ),
-                    );
-                  },
+            Container(
+              height: 250,
+              child: Visibility(
+                visible: _dexDevice != null && _glucose != null,
+                replacement: Container(),
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16.0),
+                      color: Colors.greenAccent.withOpacity(0.2)),
+                  child: ListTile(
+                    title: Text(_dexDevice != null
+                        ? _dexDevice!.platformName
+                        : "No Device Found"),
+                    subtitle: Text("Glucose: $_glucose mmol/L"),
+                  ),
                 ),
               ),
+            ),
             scanningBody()
           ],
         ));
@@ -105,15 +119,18 @@ class _BleScannerState extends State<BleScanner> {
         children: [
           Visibility(
             visible: isScanning && !btePermissionStatus.isGranted,
-            replacement: ScanButton(isScanning: isScanning, func: scanButtonFunc,),
+            replacement: ScanButton(
+              isScanning: isScanning,
+              func: scanButtonFunc,
+            ),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
-                  Text("Currently searching for Dexcom Sensor"),
-                  Text("G7 only sends a signal every 5 minutes..."),
+                  const CircularProgressIndicator(),
+                  const Text("Currently searching for Dexcom Sensor"),
+                  const Text("G7 only sends a signal every 5 minutes..."),
                   ScanButton(
                     isScanning: isScanning,
                     func: scanButtonFunc,

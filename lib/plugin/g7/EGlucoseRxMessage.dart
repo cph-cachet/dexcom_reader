@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
+import 'package:dexcom_reader/plugin/services/state_storage_service.dart';
 
 class EGlucoseRxMessage {
   int statusRaw = 0;
@@ -51,20 +52,7 @@ class EGlucoseRxMessage {
         valid = true; // Mark the message as valid
 
         // Print or handle the parsed values as needed
-        //print('EGlucoseRX: glucose: $glucose, timestamp: $timestamp, trend: $trend, valid: $valid');
-        final DexGlucosePacket dexGlucosePacket = DexGlucosePacket(
-            statusRaw,
-            glucose,
-            clock,
-            timestamp,
-            unfiltered,
-            filtered,
-            sequence,
-            glucoseIsDisplayOnly,
-            state,
-            trend,
-            age,
-            valid);
+        print('EGlucoseRX: glucose: $glucose, timestamp: $timestamp, trend: $trend, valid: $valid');
       }
     }
   }

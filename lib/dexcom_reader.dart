@@ -14,6 +14,9 @@ import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+import 'plugin/g7/DexGlucosePacket.dart';
+import 'plugin/services/state_storage_service.dart';
+
 ///
 /// Create a clean interface and corresponding API for the DexcomService
 /// ScanForDexDevice()
@@ -92,13 +95,6 @@ class DexcomG7Reader implements IDexcomG7Reader {
       // Listen for MTU updates
       device.mtu.listen((mtu) {});
 
-      //TODO: Implement a StateStorageService that can fetch the previously saved Dexcom UUID's for subscribing to service and automatically clear old devices when adding a new one after scan
-      // Assuming you know the service and characteristic UUIDs
-      Guid serviceUuid = Guid("0000180a-0000-1000-8000-00805F9B34FB");
-      Guid remoteId = Guid("f8083532-849e-531c-c594-30f1f86a4ea5");
-      Guid? secondaryServiceUuid = null;
-      Guid characteristicUuid = Guid("00002a29-0000-1000-8000-00805F9B34FB");
-
       // Discover services
       List<BluetoothService> services = await device.discoverServices();
       for (var service in services) {
@@ -107,17 +103,12 @@ class DexcomG7Reader implements IDexcomG7Reader {
               characteristic.properties.indicate) {
             try {
               await characteristic.setNotifyValue(true);
+              int count = 0;
               characteristic.onValueReceived.listen((data) {
+                print('Dexcom MTU packet ${count++}: $data');
                 if (data.length == 19) {
-                  //print('Received data from ${characteristic.uuid}: $data');
-                  print('Received data: $data');
-                  // Assuming 'data' is already a Uint8List; if not, convert it.
                   Uint8List packet = Uint8List.fromList(data);
-                  //print("Decoding data for service: ${service.toString()}");
-                  //print("and characteristic of service: ${characteristic.toString()}");
                   decodeData(packet);
-                  //print("Calling decode constructor:");
-                  //EGlucoseRxMessage(packet);
                 }
               });
             } catch (e) {
@@ -131,11 +122,27 @@ class DexcomG7Reader implements IDexcomG7Reader {
     }
   }
 
-  void decodeData(Uint8List packet) {
+  Future<void> decodeData(Uint8List packet) async {
     EGlucoseRxMessage data = EGlucoseRxMessage(packet);
-
     double bloodGlucose = convertReadValToGlucose(data.glucose);
     print("Blood glucose measured is: $bloodGlucose mmol/L");
+    StateStorageService storageService = StateStorageService();
+    await storageService.saveGlucoseLevel(data.glucose);
+    /*
+    final DexGlucosePacket dexGlucosePacket = DexGlucosePacket(
+        data.statusRaw,
+        data.glucose,
+        data.clock,
+        data.timestamp,
+        data.unfiltered,
+        data.filtered,
+        data.sequence,
+        data.glucoseIsDisplayOnly,
+        data.state,
+        data.trend,
+        data.age,
+        data.valid);
+     */
   }
 
   double convertReadValToGlucose(int val) {

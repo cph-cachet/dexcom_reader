@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:intl/intl.dart';
+
 class EGlucoseRxMessage {
   int statusRaw = 0;
   int clock = 0;
@@ -50,8 +52,17 @@ class EGlucoseRxMessage {
         valid = true; // Mark the message as valid
 
         // Print or handle the parsed values as needed
-        print('EGlucoseRX: glucose: $glucose, timestamp: $timestamp, trend: $trend, valid: $valid');
+        print('glucose: $glucose, timestamp: ${dateTimeText(timestamp)}, trend: $trend, valid: $valid');
       }
     }
   }
+
+  String dateTimeText(int timestamp) {
+    // Convert the timestamp (assumed to be in milliseconds) to a DateTime object
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+
+    // Format the DateTime object to a string in the desired format
+    return DateFormat('yyyy-MM-dd kk:mm:ss').format(date);
+  }
+
 }

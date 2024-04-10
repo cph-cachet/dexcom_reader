@@ -105,8 +105,8 @@ class DexcomG7Reader implements IDexcomG7Reader {
               await characteristic.setNotifyValue(true);
               int count = 0;
               characteristic.onValueReceived.listen((data) {
-                print('Dexcom MTU packet ${count++}: $data');
                 if (data.length == 19) {
+                  print('Dexcom MTU packet ${count++}: $data');
                   Uint8List packet = Uint8List.fromList(data);
                   decodeBTEPacket(packet);
                 }

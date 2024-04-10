@@ -80,6 +80,12 @@
       "languageVersion": "3.2"
     },
     {
+      "name": "intl",
+      "rootUri": "file:///Users/mark/.pub-cache/hosted/pub.dev/intl-0.19.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "leak_tracker",
       "rootUri": "file:///Users/mark/.pub-cache/hosted/pub.dev/leak_tracker-10.0.0",
       "packageUri": "lib/",
@@ -314,7 +320,7 @@
       "languageVersion": "3.3"
     }
   ],
-  "generated": "2024-04-09T09:17:26.356471Z",
+  "generated": "2024-04-10T10:21:57.520365Z",
   "generator": "pub",
   "generatorVersion": "3.3.3"
 }

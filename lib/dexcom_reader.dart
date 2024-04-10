@@ -108,7 +108,7 @@ class DexcomG7Reader implements IDexcomG7Reader {
                 if (data.length == 19) {
                   print('Dexcom MTU packet ${count++}: $data');
                   Uint8List packet = Uint8List.fromList(data);
-                  decodeBTEPacket(packet);
+                  decodeGlucosePacket(packet);
                 }
               });
             } catch (e) {
@@ -123,7 +123,7 @@ class DexcomG7Reader implements IDexcomG7Reader {
   }
 
   @override
-  Future<void> decodeBTEPacket(Uint8List packet) async {
+  Future<void> decodeGlucosePacket(Uint8List packet) async {
     EGlucoseRxMessage data = EGlucoseRxMessage(packet);
     double bloodGlucose = convertReadValToGlucose(data.glucose);
     print("Blood glucose measured is: $bloodGlucose mmol/L");
@@ -167,29 +167,6 @@ class DexcomG7Reader implements IDexcomG7Reader {
 
     return glucose;
   }
-
-  /*
- double convertReadValToGlucose(int val) {
-    // If the converted value is 100, then the blood glucose is measured to being 5.5
-    // The blood glucose measurement increases by 0.1 mmol/L for every 2nd step in either direction (e.g 98 = 5.4, 99 = 5.5, 100 = 5.5, 101=5.6, 102 = 5.6, 103 = 5.7)
-    double glucose = 5.5; // Starting point where we will either increase or decrease it to the actual value
-    double mmolChangePerStep = 0.1; // Glucose changes by a rate of 0.1 for every 2 steps.
-    int stepSize = 2;
-    int stepDiff = (val - 99); // to account for rounding error of type double
-
-    int roundedStepDiff = (stepDiff + 1) ~/ stepSize * stepSize;
-    // Calculate the real glucose value
-    double conversion = (roundedStepDiff/stepSize) * mmolChangePerStep;
-    if (val >= 99) {
-      glucose += conversion;
-    } else {
-      glucose -= conversion;
-    }
-    //TODO: Save it in state_storage_service with timestamp
-    // Calculates int val = 128 into 6.95mmol/L which is incorrect. It should be 7.1
-    return glucose;
-  }
-   */
 
 // 135 = 7.3 but real value is 7.5?
   @override

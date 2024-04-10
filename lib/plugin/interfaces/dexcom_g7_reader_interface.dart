@@ -11,7 +11,7 @@ abstract class IDexcomG7Reader {
 
   Future<void> connectToDexDevice(BluetoothDevice device);
 
-  Future<void> decodeBTEPacket(Uint8List packet);
+  Future<void> decodeGlucosePacket(Uint8List packet);
 
   double convertReadValToGlucose(int value); // val = 100 is glucose 5.5, 101&102=5.6
 

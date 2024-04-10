@@ -15,9 +15,9 @@ class StateStorageService implements IStateStorage {
 
   @override
   Future<void> saveDexGlucosePacket(DexGlucosePacket packet) async {
-    // TODO: implement saveDexGlucosePacket
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String packetString = packet.toJson().toString();
+    Map<String, dynamic> packetMap = packet.toJson();
+    String packetString = json.encode(packetMap);
     print("Saving DexGlucosePacket: $packetString");
     await prefs.setString("LatestDexGlucosePacket", packetString);
   }
@@ -27,6 +27,7 @@ class StateStorageService implements IStateStorage {
     // TODO: implement getLatestDexGlucosePacket
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? packetString = prefs.getString("LatestDexGlucosePacket");
+    print("Fetching and decoding packetString: $packetString");
     Map<String, dynamic> packetMap = json.decode(packetString!);
     DexGlucosePacket dexGlucosePacket = DexGlucosePacket.fromJson(packetMap);
     return dexGlucosePacket;

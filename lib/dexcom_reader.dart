@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:intl/intl.dart';
 
 import 'plugin/g7/DexGlucosePacket.dart';
 import 'plugin/services/state_storage_service.dart';
@@ -104,11 +105,11 @@ class DexcomG7Reader implements IDexcomG7Reader {
             try {
               await characteristic.setNotifyValue(true);
               int count = 0;
-              characteristic.onValueReceived.listen((data) {
+              characteristic.onValueReceived.listen((data) async {
                 if (data.length == 19) {
                   print('Dexcom MTU packet ${count++}: $data');
                   Uint8List packet = Uint8List.fromList(data);
-                  decodeGlucosePacket(packet);
+                  await decodeGlucosePacket(packet);
                 }
               });
             } catch (e) {
@@ -176,8 +177,24 @@ class DexcomG7Reader implements IDexcomG7Reader {
   }
 
   @override
-  Future<double> getTrend() {
+  Future<double> getLatestTrend() async {
     // TODO: implement getTrend
-    throw UnimplementedError();
+    StateStorageService storageService = StateStorageService();
+    var latestPacket = await storageService.getLatestDexGlucosePacket();
+    return latestPacket!.trend;
+  }
+
+  @override
+  Future<DexGlucosePacket?> getLatestGlucosePacket() async {
+    StateStorageService storageService = StateStorageService();
+    return await storageService.getLatestDexGlucosePacket();
+  }
+
+  String dateTimeText(int timestamp) {
+    // Convert the timestamp (assumed to be in milliseconds) to a DateTime object
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+
+    // Format the DateTime object to a string in the desired format
+    return DateFormat('yyyy-MM-dd kk:mm:ss').format(date);
   }
 }

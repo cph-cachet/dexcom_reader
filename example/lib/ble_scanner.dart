@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dexcom_reader/dexcom_reader.dart';
+import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
 import 'package:dexcom_reader/plugin/services/state_storage_service.dart';
 import 'package:dexcom_reader_example/Components/scan_button.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,7 @@ class _BleScannerState extends State<BleScanner> {
 
   BluetoothDevice? _dexDevice;
   List<BluetoothDevice> devices = [];
-  double? _glucose;
+  DexGlucosePacket? latestGlucosePacket;
 
   PermissionStatus btePermissionStatus = PermissionStatus.denied;
   bool isScanning = false;
@@ -74,15 +75,16 @@ class _BleScannerState extends State<BleScanner> {
     _dexDevice != null
         ? await dexReader.connectToDexDevice(_dexDevice!)
         : null; // If a dexcom device is found, connect to it
-    double? glucose = await storageService.getLatestGlucoseLevel();
+    DexGlucosePacket? packet = await dexService.getLatestGlucosePacket();
     setState(() {
-      _glucose = glucose;
+      if (packet != null) {
+        latestGlucosePacket = packet;
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
         appBar: AppBar(
           title: const Text('BLE Scanner'),
@@ -91,24 +93,62 @@ class _BleScannerState extends State<BleScanner> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Visibility(
-              visible: _dexDevice != null && _glucose != null,
-              replacement: Container(),
-              child: Container(
-                height: 66,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16.0),
-                    color: Colors.greenAccent.withOpacity(0.2)),
-                child: ListTile(
-                  title: Text(_dexDevice != null
-                      ? _dexDevice!.platformName
-                      : "No Device Found"),
-                  subtitle: Text("Glucose: $_glucose mmol/L"),
-                ),
-              ),
-            ),
+                visible: _dexDevice != null && latestGlucosePacket != null,
+                replacement: Container(),
+                child: dexGlucosePacketTile()),
             scanningBody()
           ],
         ));
+  }
+
+  Widget dexGlucosePacketTile() {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Add some spacing between the top of the card and the title
+          Container(height: 5),
+          // Add a title widget
+
+          Text(
+              _dexDevice != null ? _dexDevice!.platformName : "No Device Found",
+              style: TextStyle(color: Colors.grey.shade100)),
+          // Add some spacing between the title and the subtitle
+          Container(height: 5),
+          // Add a subtitle widget
+          Text(
+            "Glucose: ${latestGlucosePacket != null ? dexService.convertReadValToGlucose(latestGlucosePacket!.glucose) : ""} mmol/L",
+            style: TextStyle(
+              color: Colors.grey[500],
+            ),
+          ),
+          // Add some spacing between the subtitle and the text
+          Container(height: 10),
+          // Add a text widget to display some text
+          Text(
+            latestGlucosePacket != null
+                ? "Trend: ${latestGlucosePacket!.trend}"
+                : "No trend data",
+            maxLines: 2,
+            style: TextStyle(
+              color: Colors.grey[700],
+            ),
+          ),
+          Container(
+            height: 10,
+          ),
+          Text(
+            latestGlucosePacket != null
+                ? "Timestamp: ${dexService.dateTimeText(latestGlucosePacket!.timestamp)}"
+                : "No trend data",
+            maxLines: 2,
+            style: TextStyle(
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // This widget contains the Currently scanning or press to scan text with a start/stop scan button

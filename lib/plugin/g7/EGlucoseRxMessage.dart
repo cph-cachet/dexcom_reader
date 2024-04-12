@@ -48,7 +48,7 @@ class EGlucoseRxMessage {
 
         // Assuming 'predicted_glucose' is the next field, adjust as necessary
         int predictedGlucose = data.getUint16(offset) & 0x03ff;
-
+        print("glucoseRaw: $glucose");
         valid = true; // Mark the message as valid
       }
     }

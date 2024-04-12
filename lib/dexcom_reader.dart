@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:dexcom_reader/plugin/interfaces/dexcom_g7_reader_interface.dart';
+import 'package:dexcom_reader/plugin/interfaces/dexcom_reader_interface.dart';
 import 'package:flutter/services.dart';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -13,7 +13,7 @@ import 'plugin/g7/DexGlucosePacket.dart';
 /// GetBatteryData()
 /// GetOtherData()
 
-class DexcomG7Reader implements IDexcomG7Reader {
+class DexcomG7Reader implements IDexcomReader {
   static const MethodChannel _channel = MethodChannel('my_plugin');
   final int opcode =
       0x4e; // This is 78 which the first element of the glucose packet should read.
@@ -119,9 +119,9 @@ class DexcomG7Reader implements IDexcomG7Reader {
   /// {"statusRaw":0,"glucoseRaw":102,"glucose":5.6,"clock":871119,"timestamp":1712909742781,"unfiltered":0,"filtered":0,"sequence":2906,"glucoseIsDisplayOnly":false,"state":6,"trend":-0.5,"age":6,"valid":true}
   @override
   Future<void> decodeGlucosePacket(Uint8List packet) async {
+    print("Decoding packet: $packet");
     EGlucoseRxMessage data = EGlucoseRxMessage(packet);
     StateStorageService storageService = StateStorageService();
-    print("Decoding packet: $packet");
     final DexGlucosePacket dexGlucosePacket = DexGlucosePacket(
         data.statusRaw,
         data.glucose, // this is glucoseRaw in constructor

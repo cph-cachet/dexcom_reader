@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-abstract class IDexcomG7Reader {
+abstract class IDexcomReader {
 
   Future<String> getPlatformVersion();
 

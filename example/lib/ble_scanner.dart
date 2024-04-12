@@ -8,6 +8,8 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BleScanner extends StatefulWidget {
+  const BleScanner({super.key});
+
   @override
   _BleScannerState createState() => _BleScannerState();
 }
@@ -56,7 +58,6 @@ class _BleScannerState extends State<BleScanner> {
     super.dispose();
   }
 
-  //Todo: Clean startScanning code and the Flutter widgets for this page
   Future<BluetoothDevice?> startScanning() async {
     DexcomG7Reader dexReader = DexcomG7Reader(); // Initialise plugin
     BluetoothDevice? dexDevice;
@@ -71,10 +72,12 @@ class _BleScannerState extends State<BleScanner> {
     _dexDevice != null
         ? await dexReader.connectToDexDevice(_dexDevice!)
         : null; // If a dexcom device is found, connect to it
+
     DexGlucosePacket? packet = await dexService.getLatestGlucosePacket();
     setState(() {
       if (packet != null) {
         latestGlucosePacket = packet;
+        isScanning = false;
       }
     });
   }

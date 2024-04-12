@@ -63,7 +63,6 @@ class DexcomG7Reader implements IDexcomG7Reader {
         completer.complete(null);
       }
     });
-    print("Returning value: ${completer.future}");
     return completer
         .future; // Return the future that completes when the device is found or the timeout occurs
   }
@@ -91,12 +90,16 @@ class DexcomG7Reader implements IDexcomG7Reader {
               characteristic.properties.indicate) {
             try {
               await characteristic.setNotifyValue(true);
-              int count = 0;
-              characteristic.onValueReceived.listen((data) async {
+              late StreamSubscription subscription;
+              subscription = characteristic.onValueReceived.listen((data) async {
+                // Check if the length of the packet corresponds with the Glucose MTU Packet (Dexcom G7 sends 4 differently sized packets at a time)
                 if (data.length == 19) {
-                  print('Dexcom MTU packet ${count++}: $data');
                   Uint8List packet = Uint8List.fromList(data);
                   await decodeGlucosePacket(packet);
+
+                  if(subscription != null){
+                    await subscription.cancel();
+                  }
                 }
               });
             } catch (e) {
@@ -110,13 +113,15 @@ class DexcomG7Reader implements IDexcomG7Reader {
     }
   }
 
-  /// GetLatestGlucose()
-  ///
+  /// DecodeGlucosePacket()
+  /// This method takes a Dexcom packet with an adequate length and converts it into readable data, for example:
+  /// [78, 0, 207, 74, 13, 0, 90, 11, 0, 1, 6, 0, 102, 0, 6, 251, 93, 0, 15] =>
+  /// {"statusRaw":0,"glucoseRaw":102,"glucose":5.6,"clock":871119,"timestamp":1712909742781,"unfiltered":0,"filtered":0,"sequence":2906,"glucoseIsDisplayOnly":false,"state":6,"trend":-0.5,"age":6,"valid":true}
   @override
   Future<void> decodeGlucosePacket(Uint8List packet) async {
     EGlucoseRxMessage data = EGlucoseRxMessage(packet);
     StateStorageService storageService = StateStorageService();
-
+    print("Decoding packet: $packet");
     final DexGlucosePacket dexGlucosePacket = DexGlucosePacket(
         data.statusRaw,
         data.glucose, // this is glucoseRaw in constructor
@@ -132,9 +137,9 @@ class DexcomG7Reader implements IDexcomG7Reader {
         data.age,
         data.valid);
 
+    // Save data in various forms. Perhaps it should only be saved as .saveDexGlucosePacket (simplest and most logical flow)
     await storageService.saveDexGlucosePacket(dexGlucosePacket);
-    await storageService.saveLatestRawGlucose(data.glucose);
-    await storageService.addDexGlucosePacket(dexGlucosePacket);
+    await storageService.addDexGlucosePacket(dexGlucosePacket); // Adds the glucose packet / measurement to a list of all measurements. Can be useful as storing only the latest value is limiting
   }
 
   @override
@@ -162,6 +167,8 @@ class DexcomG7Reader implements IDexcomG7Reader {
 
   /// ConvertReadValToGlucose
   /// This method converts the raw value for glucose found in the relevant Dexcom MTU packet into mmol/L. It still needs to be optimized and loses accuracy at high and low blood glucose levels
+  /// Hypothesis: The value increases by 0.1 for every 2nd step in the raw value. With exception for every 30th raw value. I.e. [99,100] = 5.5, [101] = 5.6, [102,103] = 5.7 .... [129,130]? = 7.2, [131]? = 7.3, [132,133]? = 7.4 ,
+  /// [134,135] = 7.5, [136,137] = 7.6, [138,139] = 7.7, [140,141] = 7.8, [142,143] = 7.9, [144,145] = 8
   @override
   double convertReadValToGlucose(int val) {
     double glucose = 5.5; // Starting glucose level at val 100
@@ -179,8 +186,7 @@ class DexcomG7Reader implements IDexcomG7Reader {
 
     // Update the glucose level based on the step difference
     glucose += totalGlucoseChange;
-    print(
-        "Blood glucose measured is: $glucose mmol/L"); // For debug purposes only
+    print("Blood glucose measured is: $glucose mmol/L"); // For debug purposes
     return glucose;
   }
 

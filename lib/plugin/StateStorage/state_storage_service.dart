@@ -18,7 +18,6 @@ class StateStorageService implements IStateStorage {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Map<String, dynamic> packetMap = packet.toJson();
     String packetString = json.encode(packetMap);
-    print("Saving DexGlucosePacket: $packetString");
     await prefs.setString("LatestDexGlucosePacket", packetString);
   }
 

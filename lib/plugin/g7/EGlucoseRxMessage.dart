@@ -20,8 +20,8 @@ class EGlucoseRxMessage {
     if (packet.length >= 19) {
       final data = ByteData.sublistView(packet);
       int offset = 0;
-
       int opcode = data.getUint8(offset++);
+
       if (opcode == 0x4e) {
         // Assuming 0x4e is the opcode
         statusRaw = data.getUint8(offset++);
@@ -50,9 +50,6 @@ class EGlucoseRxMessage {
         int predictedGlucose = data.getUint16(offset) & 0x03ff;
 
         valid = true; // Mark the message as valid
-
-        // Print or handle the parsed values as needed
-        print('glucose: $glucose, timestamp: ${dateTimeText(timestamp)}, trend: $trend, valid: $valid');
       }
     }
   }
@@ -64,5 +61,4 @@ class EGlucoseRxMessage {
     // Format the DateTime object to a string in the desired format
     return DateFormat('yyyy-MM-dd kk:mm:ss').format(date);
   }
-
 }

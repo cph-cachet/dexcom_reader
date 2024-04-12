@@ -16,11 +16,15 @@ abstract class IDexcomG7Reader {
 
   Future<DexGlucosePacket?> getLatestGlucosePacket();
 
-  double convertReadValToGlucose(int value); // val = 100 is glucose 5.5, 101&102=5.6
-
   Future<double?> getLatestGlucose();
 
   Future<double?> getLatestTrend();
+
+  double convertReadValToGlucose(int value); // val = 100 is glucose 5.5, 101&102=5.6
+
+  String convertTimeStampToDatetime(int timestamp);
+
+
 
 
 

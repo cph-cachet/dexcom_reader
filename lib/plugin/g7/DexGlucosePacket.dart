@@ -3,7 +3,8 @@ class DexGlucosePacket {
   // Todo: Decide which parameters should be stored and which data is possibly irrelevant.
   // Todo: Find out what infiltered, filtered and sequence parameters mean
   int _statusRaw;
-  int _glucose;
+  int _glucoseRaw;
+  double _glucose;
   int _clock;
   int _timestamp;
   int _unfiltered;
@@ -19,6 +20,7 @@ class DexGlucosePacket {
   // https://github.com/NightscoutFoundation/xDrip/blob/master/app/src/main/java/com/eveningoutpost/dexdrip/cgm/dex/g7/EGlucoseRxMessage.java
   DexGlucosePacket(
       this._statusRaw,
+      this._glucoseRaw,
       this._glucose,
       this._clock,
       this._timestamp,
@@ -33,7 +35,8 @@ class DexGlucosePacket {
 
   // Getters
   int get statusRaw => _statusRaw;
-  int get glucose => _glucose;
+  int get glucoseRaw => _glucoseRaw;
+  double get glucose => _glucose;
   int get clock => _clock;
   int get timestamp => _timestamp;
   int get unfiltered => _unfiltered;
@@ -49,7 +52,8 @@ class DexGlucosePacket {
   Map<String, dynamic> toJson() {
     return {
       'statusRaw': _statusRaw,
-      'glucose': _glucose,
+      'glucoseRaw': _glucoseRaw,
+      'glucose' : _glucose,
       'clock': _clock,
       'timestamp': _timestamp,
       'unfiltered': _unfiltered,
@@ -67,6 +71,7 @@ class DexGlucosePacket {
   factory DexGlucosePacket.fromJson(Map<String, dynamic> json) {
     return DexGlucosePacket(
       json['statusRaw'],
+      json['glucoseRaw'],
       json['glucose'],
       json['clock'],
       json['timestamp'],

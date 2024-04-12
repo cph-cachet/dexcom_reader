@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:dexcom_reader/dexcom_reader.dart';
 import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
-import 'package:dexcom_reader/plugin/services/state_storage_service.dart';
 import 'package:dexcom_reader_example/Components/scan_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -15,7 +14,6 @@ class BleScanner extends StatefulWidget {
 
 class _BleScannerState extends State<BleScanner> {
   DexcomG7Reader dexService = DexcomG7Reader();
-  StateStorageService storageService = StateStorageService();
 
   BluetoothDevice? _dexDevice;
   List<BluetoothDevice> devices = [];
@@ -62,8 +60,6 @@ class _BleScannerState extends State<BleScanner> {
   Future<BluetoothDevice?> startScanning() async {
     DexcomG7Reader dexReader = DexcomG7Reader(); // Initialise plugin
     BluetoothDevice? dexDevice;
-    print("Calling DexComG7Reader plugin method");
-
     dexDevice = await dexReader.scanForDexDevice();
 
     setState(() {
@@ -117,7 +113,7 @@ class _BleScannerState extends State<BleScanner> {
           Container(height: 5),
           // Add a subtitle widget
           Text(
-            "Glucose: ${latestGlucosePacket != null ? dexService.convertReadValToGlucose(latestGlucosePacket!.glucose) : ""} mmol/L",
+            "Glucose: ${latestGlucosePacket != null ? latestGlucosePacket!.glucose : ""} mmol/L",
             style: TextStyle(
               color: Colors.grey[500],
             ),
@@ -139,7 +135,7 @@ class _BleScannerState extends State<BleScanner> {
           ),
           Text(
             latestGlucosePacket != null
-                ? "Timestamp: ${dexService.dateTimeText(latestGlucosePacket!.timestamp)}"
+                ? "Timestamp: ${dexService.convertTimeStampToDatetime(latestGlucosePacket!.timestamp)}"
                 : "No trend data",
             maxLines: 2,
             style: TextStyle(

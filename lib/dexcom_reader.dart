@@ -1,28 +1,15 @@
-// You have generated a new plugin project without specifying the `--platforms`
-// flag. A plugin project with no platform support was generated. To add a
-// platform, run `flutter create -t plugin --platforms <platforms> .` under the
-// same directory. You can also find a detailed instruction on how to add
-// platforms in the `pubspec.yaml` at
-// https://flutter.dev/docs/development/packages-and-plugins/developing-packages#plugin-platforms.
-
 import 'dart:async';
-
+import 'dart:io';
 import 'package:dexcom_reader/plugin/interfaces/dexcom_g7_reader_interface.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:intl/intl.dart';
 
+import 'plugin/StateStorage/state_storage_service.dart';
 import 'plugin/g7/DexGlucosePacket.dart';
-import 'plugin/services/state_storage_service.dart';
 
-///
 /// Create a clean interface and corresponding API for the DexcomService
-/// ScanForDexDevice()
-/// connectToDexDevice()
-/// GetLatestGlucose()
 /// GetBatteryData()
 /// GetOtherData()
 
@@ -39,6 +26,7 @@ class DexcomG7Reader implements IDexcomG7Reader {
     return version;
   }
 
+  /// ScanForDexDevice()
   /// This method returns a BluetoothDevice that corresponds to a Dexcom G7. Once the caller gets a non-null BluetoothDevice, use it to call ConnectToDexDevice()
   @override
   Future<BluetoothDevice?> scanForDexDevice() async {
@@ -53,7 +41,6 @@ class DexcomG7Reader implements IDexcomG7Reader {
       for (ScanResult result in results) {
         if (!scannedDevices.contains(result.device) &&
             result.device.platformName.contains("DXC")) {
-          print("Found Dexcom device!");
           foundDevice = result.device;
           scannedDevices
               .add(result.device); // Add device to scanned devices list
@@ -65,10 +52,11 @@ class DexcomG7Reader implements IDexcomG7Reader {
         }
       }
     });
-    var bte_timeout = const Duration(
-        seconds: 330); // G7 emits an MTU packet every 300 seconds or so
+    var bteTimeout = const Duration(
+        seconds:
+            330); // G7 emits a series of MTU packets every 300 seconds or so
     // If the device is not found within a certain timeout, stop the scan and complete the future with null.
-    Future.delayed(bte_timeout).then((_) async {
+    Future.delayed(bteTimeout).then((_) async {
       if (!completer.isCompleted) {
         await FlutterBluePlus.stopScan();
         subscription.cancel();
@@ -79,18 +67,17 @@ class DexcomG7Reader implements IDexcomG7Reader {
     return completer
         .future; // Return the future that completes when the device is found or the timeout occurs
   }
-
+  /// connectToDexDevice()
+  /// This method connects to a Dexcom Device when possible and reads the relevant MTU packet
   @override
   Future<void> connectToDexDevice(BluetoothDevice device) async {
-    print("Attempting to connect to device");
     await device.connect(); // Connect to the device
     try {
       if (Platform.isAndroid) {
-        int desiredMtu =
-            517; // Arbitrary MTU, will be changed when testing for Android
         // Request a specific MTU size (Android only)
+        int desiredMtu =
+            517; // Arbitrary MTU size, will be changed when testing for Android
         int actualMtu = await device.requestMtu(desiredMtu);
-        //print('MTU size set to $actualMtu');
       }
 
       // Listen for MTU updates
@@ -123,16 +110,17 @@ class DexcomG7Reader implements IDexcomG7Reader {
     }
   }
 
+  /// GetLatestGlucose()
+  ///
   @override
   Future<void> decodeGlucosePacket(Uint8List packet) async {
     EGlucoseRxMessage data = EGlucoseRxMessage(packet);
-    double bloodGlucose = convertReadValToGlucose(data.glucose);
-    print("Blood glucose measured is: $bloodGlucose mmol/L");
     StateStorageService storageService = StateStorageService();
 
     final DexGlucosePacket dexGlucosePacket = DexGlucosePacket(
         data.statusRaw,
-        data.glucose,
+        data.glucose, // this is glucoseRaw in constructor
+        convertReadValToGlucose(data.glucose), // glucose is the value converted from glucoseRaw
         data.clock,
         data.timestamp,
         data.unfiltered,
@@ -146,8 +134,34 @@ class DexcomG7Reader implements IDexcomG7Reader {
 
     await storageService.saveDexGlucosePacket(dexGlucosePacket);
     await storageService.saveLatestRawGlucose(data.glucose);
+    await storageService.addDexGlucosePacket(dexGlucosePacket);
   }
 
+  @override
+  Future<DexGlucosePacket?> getLatestGlucosePacket() async {
+    StateStorageService storageService = StateStorageService();
+    return await storageService.getLatestDexGlucosePacket();
+  }
+
+  /// GetLatestGlucose()
+  /// This method calls the service for SharedPreferences and fetches the latest glucose measurement stored in the apps state storage
+  @override
+  Future<double?> getLatestGlucose() async {
+    StateStorageService storageService = StateStorageService();
+    return await storageService.getLatestGlucoseLevel();
+  }
+
+  /// GetLatestGlucose()
+  /// This method calls the service for SharedPreferences and fetches the latest glucose measurement stored in the apps state storage
+  @override
+  Future<double?> getLatestTrend() async {
+    StateStorageService storageService = StateStorageService();
+    var latestPacket = await storageService.getLatestDexGlucosePacket();
+    return latestPacket!.trend;
+  }
+
+  /// ConvertReadValToGlucose
+  /// This method converts the raw value for glucose found in the relevant Dexcom MTU packet into mmol/L. It still needs to be optimized and loses accuracy at high and low blood glucose levels
   @override
   double convertReadValToGlucose(int val) {
     double glucose = 5.5; // Starting glucose level at val 100
@@ -165,35 +179,17 @@ class DexcomG7Reader implements IDexcomG7Reader {
 
     // Update the glucose level based on the step difference
     glucose += totalGlucoseChange;
-
+    print(
+        "Blood glucose measured is: $glucose mmol/L"); // For debug purposes only
     return glucose;
   }
 
-// 135 = 7.3 but real value is 7.5?
+  /// ConvertTimeStampToDatetime()
+  /// Converts the timestamp from the Dexcom MTU packet into a DateTime.
   @override
-  Future<double> getLatestGlucose() {
-    // TODO: implement getLatestGlucose
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<double> getLatestTrend() async {
-    // TODO: implement getTrend
-    StateStorageService storageService = StateStorageService();
-    var latestPacket = await storageService.getLatestDexGlucosePacket();
-    return latestPacket!.trend;
-  }
-
-  @override
-  Future<DexGlucosePacket?> getLatestGlucosePacket() async {
-    StateStorageService storageService = StateStorageService();
-    return await storageService.getLatestDexGlucosePacket();
-  }
-
-  String dateTimeText(int timestamp) {
+  String convertTimeStampToDatetime(int timestamp) {
     // Convert the timestamp (assumed to be in milliseconds) to a DateTime object
     DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-
     // Format the DateTime object to a string in the desired format
     return DateFormat('yyyy-MM-dd kk:mm:ss').format(date);
   }

@@ -1,14 +1,10 @@
 import 'dart:async';
-
 import 'package:dexcom_reader/dexcom_reader.dart';
-import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class DexcomData {
-  late BluetoothDevice device;
   late num? glucoseLevel;
 
-  DexcomData(this.device, this.glucoseLevel);
+  DexcomData(this.glucoseLevel);
 
   DexcomData.fromDexcomSample(Map<String, dynamic> sample){
     glucoseLevel = sample['glucose'];
@@ -31,11 +27,12 @@ class DexcomData {
       if (event == DexcomDeviceStatus.connected) {
         // When connected, listen to glucose readings
         StreamSubscription readingsSubscription = dex.glucoseReadings.listen((reading) {
-          print(dex.convertReadValToGlucose(reading.glucose)); // TODO: Do something with stream?
+          num _glucoseLevel = dex.convertReadValToGlucose(reading.glucose); // TODO: Do something with stream?
         });
         await readingsSubscription.cancel();
       }
     });
     await statusSubscription.cancel();
   }
+
 }

@@ -5,6 +5,7 @@ import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
 import 'package:dexcom_reader_example/Components/scan_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BleScanner extends StatefulWidget {
@@ -15,7 +16,7 @@ class BleScanner extends StatefulWidget {
 }
 
 class _BleScannerState extends State<BleScanner> {
-  DexcomG7Reader dexService = DexcomG7Reader();
+  DexcomReader dexService = DexcomReader();
 
   BluetoothDevice? _dexDevice;
   List<BluetoothDevice> devices = [];
@@ -59,7 +60,7 @@ class _BleScannerState extends State<BleScanner> {
   }
 
   Future<BluetoothDevice?> startScanning() async {
-    DexcomG7Reader dexReader = DexcomG7Reader(); // Initialise plugin
+    DexcomReader dexReader = DexcomReader(); // Initialise plugin
     BluetoothDevice? dexDevice;
     dexDevice = await dexReader.scanForDexDevice();
 
@@ -73,7 +74,7 @@ class _BleScannerState extends State<BleScanner> {
         ? await dexReader.connectToDexDevice(_dexDevice!)
         : null; // If a dexcom device is found, connect to it
 
-    DexGlucosePacket? packet = await dexService.getLatestGlucosePacket();
+    DexGlucosePacket? packet = null; // TODO: Implement
     setState(() {
       if (packet != null) {
         latestGlucosePacket = packet;
@@ -138,7 +139,7 @@ class _BleScannerState extends State<BleScanner> {
           ),
           Text(
             latestGlucosePacket != null
-                ? "Timestamp: ${dexService.convertTimeStampToDatetime(latestGlucosePacket!.timestamp)}"
+                ? "Timestamp: ${convertTimeStampToDatetime(latestGlucosePacket!.timestamp)}"
                 : "No trend data",
             maxLines: 2,
             style: TextStyle(
@@ -180,5 +181,12 @@ class _BleScannerState extends State<BleScanner> {
         ],
       ),
     );
+  }
+
+  String convertTimeStampToDatetime(int timestamp) {
+    // Convert the timestamp (assumed to be in milliseconds) to a DateTime object
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    // Format the DateTime object to a string in the desired format
+    return DateFormat('yyyy-MM-dd kk:mm:ss').format(date);
   }
 }

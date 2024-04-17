@@ -7,6 +7,9 @@
 // https://docs.flutter.dev/cookbook/testing/integration/introduction
 
 
+import 'dart:typed_data';
+
+import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -16,10 +19,11 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('getPlatformVersion test', (WidgetTester tester) async {
-    final DexcomG7Reader plugin = DexcomG7Reader();
-    final String? version = await plugin.getPlatformVersion();
+    final DexcomReader plugin = DexcomReader();
+    Uint8List packet = Uint8List.fromList([78, 0, 207, 74, 13, 0, 90, 11, 0, 1, 6, 0, 102, 0, 6, 251, 93, 0, 15]);
+    final EGlucoseRxMessage rxMessage = plugin.decodeGlucosePacket(packet);
     // The version string depends on the host platform running the test, so
     // just assert that some non-empty string is returned.
-    expect(version?.isNotEmpty, true);
+    expect(rxMessage, true);
   });
 }

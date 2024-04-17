@@ -19,17 +19,16 @@ class DexcomData {
       return;
     }
 
-    // Connect to the device
     await dex.connect(_device);
 
-    // Listen to status updates
     StreamSubscription statusSubscription = dex.status.listen((event) async {
       if (event == DexcomDeviceStatus.connected) {
         // When connected, listen to glucose readings
-        StreamSubscription readingsSubscription = dex.glucoseReadings.listen((reading) {
-          num _glucoseLevel = dex.convertReadValToGlucose(reading.glucose); // TODO: Do something with stream?
+        StreamSubscription glucoseReadingsSubscription = dex.glucoseReadings.listen((reading) {
+          // TODO: Do something with stream
+          glucoseLevel = dex.convertReadValToGlucose(reading.glucose);
         });
-        await readingsSubscription.cancel();
+        await glucoseReadingsSubscription.cancel();
       }
     });
     await statusSubscription.cancel();

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-enum DexcomDeviceStatus { scanning, connected, disconnected }
+enum DexcomDeviceStatus {connected, disconnected }
 
 class DexcomReader {
   late StreamSubscription _deviceSubscription;
@@ -18,14 +18,13 @@ class DexcomReader {
   /// This method returns a BluetoothDevice that corresponds to a Dexcom G7. The data returned will be used to connect to device for listening
   Future<BluetoothDevice?> scan() async {
     BluetoothDevice? device;
+    //Maybe do scan without 'withNames' in case it doesn't work. It should improve performance. Todo: Test it
     await FlutterBluePlus.startScan(
         withNames: ["DXCMHO"], timeout: const Duration(seconds: 330));
-    _statusController.add(DexcomDeviceStatus.scanning);
     var subscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
         if (result.device.platformName == 'DXCMHO') {
           FlutterBluePlus.stopScan();
-          //connect(result.device);
           device = result.device;
           break;
         }
@@ -49,9 +48,9 @@ class DexcomReader {
           await characteristic.setNotifyValue(true);
           _deviceSubscription =
               characteristic.onValueReceived.distinct().listen((data) {
-            if (data.length == 19) {
-              _statusController.add(DexcomDeviceStatus.connected);
-              decodeGlucosePacket(Uint8List.fromList(data));
+                _statusController.add(DexcomDeviceStatus.connected);
+                if (data.length == 19) {
+              _glucoseReadingsController.add(decodeGlucosePacket(Uint8List.fromList(data)));
             }
           });
         }
@@ -64,7 +63,7 @@ class DexcomReader {
     _statusController.add(DexcomDeviceStatus.disconnected);
   }
 
-  /// [78, 0, 207, 74, 13, 0, 90, 11, 0, 1, 6, 0, 102, 0, 6, 251, 93, 0, 15] => {"statusRaw":0,"glucose":102,"clock":871119,"timestamp":1712909742781,"unfiltered":0,"filtered":0,"sequence":2906,"glucoseIsDisplayOnly":false,"state":6,"trend":-0.5,"age":6,"valid":true}
+  /// E.g [78, 0, 207, 74, 13, 0, 90, 11, 0, 1, 6, 0, 102, 0, 6, 251, 93, 0, 15] => {"statusRaw":0,"glucose":102,"clock":871119,"timestamp":1712909742781,"unfiltered":0,"filtered":0,"sequence":2906,"glucoseIsDisplayOnly":false,"state":6,"trend":-0.5,"age":6,"valid":true}
   EGlucoseRxMessage decodeGlucosePacket(Uint8List packet) {
     return EGlucoseRxMessage(packet);
   }

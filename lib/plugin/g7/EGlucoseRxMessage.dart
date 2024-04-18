@@ -1,5 +1,8 @@
 import 'dart:typed_data';
 
+// Other potential messages:
+//SensorRxMessage -> 0x2f:{TransmitterStatus, timestamp, unfiltered, filtered}
+// 
 class EGlucoseRxMessage {
   int statusRaw = 0;
   int clock = 0;

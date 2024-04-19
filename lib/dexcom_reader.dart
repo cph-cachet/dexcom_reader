@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'dart:collection';
 import 'package:flutter/services.dart';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-enum DexcomDeviceStatus {connected, disconnected }
+enum DexcomDeviceStatus { connected, disconnected }
 
 class DexcomReader {
   late StreamSubscription _deviceSubscription;
@@ -15,29 +16,27 @@ class DexcomReader {
   Stream<EGlucoseRxMessage> get glucoseReadings =>
       _glucoseReadingsController.stream;
 
-  /// This method returns a BluetoothDevice that corresponds to a Dexcom G7. The data returned will be used to connect to device for listening
-  Future<BluetoothDevice?> scan() async {
-    BluetoothDevice? device;
-    //Maybe do scan without 'withNames' in case it doesn't work. It should improve performance. Todo: Test it
-    await FlutterBluePlus.startScan(
-        withNames: ["DXCMHO"], timeout: const Duration(seconds: 330));
+  /// Method is used to extract the BT names and device identifiers out of all nearby dexcom devices
+  /// A G7 BT device would be e.g => device.platfornName = 'DXCMHO' and device.remoteId == deviceId. Use device.remoteId of the device you wish to connect to with the method connectWithId()
+  Future<List<BluetoothDevice>> getScannedDexcomDevices() async {
+    List<BluetoothDevice> devices = [];
+    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 330)); //Scan for a select amount of time. G7's output every 300-310 seconds
     var subscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
-        if (result.device.platformName == 'DXCMHO') {
-          FlutterBluePlus.stopScan();
-          device = result.device;
-          break;
+        if (result.device.platformName.contains('DXC')) {
+          devices.add(result.device);
         }
       }
     });
-
     await FlutterBluePlus.isScanning.where((val) => val == false).first;
     subscription.cancel();
-    return device;
+    return devices;
   }
 
-  /// This method connects to a Dexcom BTDevice and listens to the relevant MTU packet(s). If device information is not stored in memory, then we must first scan() before connecting
-  Future<void> connect(BluetoothDevice device) async {
+  /// Connect to a specific Dexcom G7 if you know its bluetooth identifier
+  Future<void> connectWithId(String deviceId) async {
+    BluetoothDevice device =
+        BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
     await device.connect();
     device.mtu.listen((mtu) {});
     List<BluetoothService> services = await device.discoverServices();
@@ -50,9 +49,10 @@ class DexcomReader {
               characteristic.onValueReceived.distinct().listen((data) {
                 _statusController.add(DexcomDeviceStatus.connected);
                 if (data.length == 19) {
-              _glucoseReadingsController.add(decodeGlucosePacket(Uint8List.fromList(data)));
-            }
-          });
+                  _glucoseReadingsController
+                      .add(decodeGlucosePacket(Uint8List.fromList(data)));
+                }
+              });
         }
       }
     }

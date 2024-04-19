@@ -19,7 +19,7 @@ class DexcomData {
       return;
     }
 
-    await dex.connect(_device);
+    await dex.getScannedDexcomDevices(_device);
 
     StreamSubscription statusSubscription = dex.status.listen((event) async {
       if (event == DexcomDeviceStatus.connected) {

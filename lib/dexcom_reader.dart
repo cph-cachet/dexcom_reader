@@ -67,20 +67,4 @@ class DexcomReader {
   EGlucoseRxMessage decodeGlucosePacket(Uint8List packet) {
     return EGlucoseRxMessage(packet);
   }
-
-  /// TODO: Refactor this to use the same regression model as XDrip
-  double convertReadValToGlucose(int val) {
-    double glucose = 5.5; // Starting glucose level at val 100
-    int baseline = 100; // Baseline value for glucose calculations
-    // Calculate the step difference from the baseline
-    int stepDifference = val - baseline;
-    // Ensure we count every full 2-step increment only
-    int fullSteps = stepDifference ~/
-        2; // Using integer division to round down to the nearest even number
-    // Glucose increases by 0.1 mmol/L for each full 2-step increment
-    double totalGlucoseChange = fullSteps * 0.1;
-    // Update the glucose level based on the step difference
-    glucose += totalGlucoseChange;
-    return glucose;
-  }
 }

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:dexcom_reader/dexcom_reader.dart';
+import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class DexcomData {
   late num? glucoseLevel;
@@ -13,20 +15,19 @@ class DexcomData {
   void example() async {
     var dex = DexcomReader();
     // Scan for devices and handle the case where no device is found
-    var _device = await dex.scan();
-    if (_device == null) {
-      print("No Dexcom device scanned.");
-      return;
-    }
+    List<BluetoothDevice> devices = await dex.getScannedDexcomDevices();
+    List<EGlucoseRxMessage> glucoseMessages = [];
 
-    await dex.getScannedDexcomDevices(_device);
+    await dex.connectWithId(devices[0].remoteId.str);
 
     StreamSubscription statusSubscription = dex.status.listen((event) async {
       if (event == DexcomDeviceStatus.connected) {
         // When connected, listen to glucose readings
         StreamSubscription glucoseReadingsSubscription = dex.glucoseReadings.listen((reading) {
-          // TODO: Do something with stream
-          glucoseLevel = dex.convertReadValToGlucose(reading.glucose);
+          glucoseMessages.add(reading);
+          print("Glucose raw value: ${glucoseMessages.first.glucoseRaw}");
+          print("Glucose mmol/L: ${glucoseMessages.first.glucose}");
+          print("Glucose trend: ${glucoseMessages.first.trend}");
         });
         await glucoseReadingsSubscription.cancel();
       }

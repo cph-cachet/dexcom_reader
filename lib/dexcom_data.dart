@@ -13,21 +13,18 @@ class DexcomData {
   }
 
   void example() async {
-    var dex = DexcomReader();
+    var dexcomReader = DexcomReader();
     // Scan for devices and handle the case where no device is found
-    List<BluetoothDevice> devices = await dex.getScannedDexcomDevices();
+    List<BluetoothDevice> devices = await dexcomReader.getScannedDexcomDevices();
     List<EGlucoseRxMessage> glucoseMessages = [];
 
-    await dex.connectWithId(devices[0].remoteId.str);
+    await dexcomReader.connectWithId(devices[0].remoteId.str);
 
-    StreamSubscription statusSubscription = dex.status.listen((event) async {
+    StreamSubscription statusSubscription = dexcomReader.status.listen((event) async {
       if (event == DexcomDeviceStatus.connected) {
         // When connected, listen to glucose readings
-        StreamSubscription glucoseReadingsSubscription = dex.glucoseReadings.listen((reading) {
+        StreamSubscription glucoseReadingsSubscription = dexcomReader.glucoseReadings.listen((reading) {
           glucoseMessages.add(reading);
-          print("Glucose raw value: ${glucoseMessages.first.glucoseRaw}");
-          print("Glucose mmol/L: ${glucoseMessages.first.glucose}");
-          print("Glucose trend: ${glucoseMessages.first.trend}");
         });
         await glucoseReadingsSubscription.cancel();
       }
@@ -36,3 +33,9 @@ class DexcomData {
   }
 
 }
+
+/*
+    print("Glucose raw value: ${glucoseMessages.first.glucoseRaw}");
+          print("Glucose mmol/L: ${glucoseMessages.first.glucose}");
+          print("Glucose trend: ${glucoseMessages.first.trend}");
+ */

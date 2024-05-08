@@ -18,8 +18,10 @@ class BleScanner extends StatefulWidget {
 class _BleScannerState extends State<BleScanner> {
   DexcomReader dexService = DexcomReader();
 
-  BluetoothDevice? _dexDevice;
-  List<BluetoothDevice> devices = [];
+  List<BluetoothDevice> devices = [
+    BluetoothDevice(remoteId: DeviceIdentifier("1234567890")),
+    BluetoothDevice(remoteId: DeviceIdentifier("0987654321"))
+  ];
   DexGlucosePacket? latestGlucosePacket;
 
   PermissionStatus btePermissionStatus = PermissionStatus.denied;
@@ -60,19 +62,12 @@ class _BleScannerState extends State<BleScanner> {
   }
 
   Future<BluetoothDevice?> startScanning() async {
-    DexcomReader dexReader = DexcomReader(); // Initialise plugin
-    BluetoothDevice? dexDevice;
-    dexDevice = await dexReader.scanForDexDevice();
+    List<BluetoothDevice> dexDevices = [];
+    var devices = await dexService.getScannedDexcomDevices();
 
     setState(() {
-      devices.add(
-          dexDevice!); // May not be used depending on if we want to read multiple dexcom devices?'
-      _dexDevice = dexDevice;
+      dexDevices = devices;
     });
-
-    _dexDevice != null
-        ? await dexReader.connectToDexDevice(_dexDevice!)
-        : null; // If a dexcom device is found, connect to it
 
     DexGlucosePacket? packet = null; // TODO: Implement
     setState(() {
@@ -92,17 +87,32 @@ class _BleScannerState extends State<BleScanner> {
         body: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Visibility(
-                visible: _dexDevice != null && latestGlucosePacket != null,
-                replacement: Container(),
-                child: dexGlucosePacketTile()),
+            ListView.builder(
+              itemCount: devices.isNotEmpty ? devices.length : 0,
+              itemBuilder: (BuildContext context, int index) {
+                if (devices.isEmpty) {
+                  return Container(); // Acts as the replacement when there are no devices
+                } else {
+                  return dexGlucosePacketTile(
+                      devices[index]); // Builds a tile for each device
+                }
+              },
+            ),
             scanningBody()
           ],
         ));
   }
 
-  Widget dexGlucosePacketTile() {
+  Widget dexGlucosePacketTile(BluetoothDevice dexDevice) {
+    /*
+    //TODO: find out which Dexcom device you want to connect to from identifier
+    dexReader.connectWithId(dexDevices.first.remoteId.str);
+     */
     return Expanded(
+        child: InkWell(
+      onTap: () async {
+        await dexService.connectWithId(dexDevice.remoteId.str);
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -110,8 +120,7 @@ class _BleScannerState extends State<BleScanner> {
           Container(height: 5),
           // Add a title widget
 
-          Text(
-              _dexDevice != null ? _dexDevice!.platformName : "No Device Found",
+          Text(dexDevice.platformName,
               style: TextStyle(color: Colors.grey.shade100)),
           // Add some spacing between the title and the subtitle
           Container(height: 5),
@@ -148,7 +157,7 @@ class _BleScannerState extends State<BleScanner> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   // This widget contains the Currently scanning or press to scan text with a start/stop scan button

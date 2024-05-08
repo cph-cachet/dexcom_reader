@@ -13,6 +13,7 @@ dependencies:
   plugin_platform_interface: ^2.0.2
   flutter_blue_plus: ^1.31.16
   permission_handler: any
+  google_fonts: ^6.2.1
 
 
 dev_dependencies:

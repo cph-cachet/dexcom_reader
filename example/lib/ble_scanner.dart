@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:dexcom_reader/dexcom_reader.dart';
 import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
+import 'package:dexcom_reader_example/Components/bte_scanning_widget.dart';
+import 'package:dexcom_reader_example/Components/dexcom_device_card.dart';
 import 'package:dexcom_reader_example/Components/scan_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -17,15 +19,13 @@ class BleScanner extends StatefulWidget {
 
 class _BleScannerState extends State<BleScanner> {
   DexcomReader dexService = DexcomReader();
-
+  DexGlucosePacket? latestGlucosePacket;
+  PermissionStatus btePermissionStatus = PermissionStatus.denied;
+  bool isScanning = false;
   List<BluetoothDevice> devices = [
     BluetoothDevice(remoteId: DeviceIdentifier("1234567890")),
     BluetoothDevice(remoteId: DeviceIdentifier("0987654321"))
   ];
-  DexGlucosePacket? latestGlucosePacket;
-
-  PermissionStatus btePermissionStatus = PermissionStatus.denied;
-  bool isScanning = false;
 
   @override
   void initState() {
@@ -87,115 +87,25 @@ class _BleScannerState extends State<BleScanner> {
         body: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            ListView.builder(
-              itemCount: devices.isNotEmpty ? devices.length : 0,
-              itemBuilder: (BuildContext context, int index) {
-                if (devices.isEmpty) {
-                  return Container(); // Acts as the replacement when there are no devices
-                } else {
-                  return dexGlucosePacketTile(
-                      devices[index]); // Builds a tile for each device
-                }
-              },
-            ),
-            scanningBody()
+            deviceListView(),
+            BTEScanningWidget(isScanning: isScanning, permissionStatus: btePermissionStatus, scanButtonFunc: scanButtonFunc)
           ],
         ));
   }
 
-  Widget dexGlucosePacketTile(BluetoothDevice dexDevice) {
-    /*
-    //TODO: find out which Dexcom device you want to connect to from identifier
-    dexReader.connectWithId(dexDevices.first.remoteId.str);
-     */
-    return Expanded(
-        child: InkWell(
-      onTap: () async {
-        await dexService.connectWithId(dexDevice.remoteId.str);
+  Widget deviceListView(){
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: devices.isNotEmpty ? devices.length : 0,
+      itemBuilder: (BuildContext context, int index) {
+        if (devices.isEmpty) {
+          return Container(); // Acts as the replacement when there are no devices
+        } else {
+          return DexcomDeviceCard(
+              latestGlucosePacket: latestGlucosePacket,
+              dexDevice: devices[index]); // Builds a tile for each device
+        }
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // Add some spacing between the top of the card and the title
-          Container(height: 5),
-          // Add a title widget
-
-          Text(dexDevice.platformName,
-              style: TextStyle(color: Colors.grey.shade100)),
-          // Add some spacing between the title and the subtitle
-          Container(height: 5),
-          // Add a subtitle widget
-          Text(
-            "Glucose: ${latestGlucosePacket != null ? latestGlucosePacket!.glucose : ""} mmol/L",
-            style: TextStyle(
-              color: Colors.grey[500],
-            ),
-          ),
-          // Add some spacing between the subtitle and the text
-          Container(height: 10),
-          // Add a text widget to display some text
-          Text(
-            latestGlucosePacket != null
-                ? "Trend: ${latestGlucosePacket!.trend}"
-                : "No trend data",
-            maxLines: 2,
-            style: TextStyle(
-              color: Colors.grey[700],
-            ),
-          ),
-          Container(
-            height: 10,
-          ),
-          Text(
-            latestGlucosePacket != null
-                ? "Timestamp: ${convertTimeStampToDatetime(latestGlucosePacket!.timestamp)}"
-                : "No trend data",
-            maxLines: 2,
-            style: TextStyle(
-              color: Colors.grey[700],
-            ),
-          ),
-        ],
-      ),
-    ));
-  }
-
-  // This widget contains the Currently scanning or press to scan text with a start/stop scan button
-  Widget scanningBody() {
-    return Center(
-      child: Column(
-        children: [
-          Visibility(
-            visible: isScanning && !btePermissionStatus.isGranted,
-            replacement: ScanButton(
-              isScanning: isScanning,
-              func: scanButtonFunc,
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(),
-                  const Text("Currently searching for Dexcom Sensor"),
-                  const Text("G7 only sends a signal every 5 minutes..."),
-                  ScanButton(
-                    isScanning: isScanning,
-                    func: scanButtonFunc,
-                  )
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
-  }
-
-  String convertTimeStampToDatetime(int timestamp) {
-    // Convert the timestamp (assumed to be in milliseconds) to a DateTime object
-    DateTime date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    // Format the DateTime object to a string in the desired format
-    return DateFormat('yyyy-MM-dd kk:mm:ss').format(date);
   }
 }

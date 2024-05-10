@@ -24,11 +24,11 @@ class DexcomDeviceCard extends StatelessWidget {
     TextStyle tStyle1 = GoogleFonts.roboto(fontSize: 20, color: Colors.white, fontWeight: FontWeight.w500);
     TextStyle tStyle2 = GoogleFonts.montserrat(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500);
 
-    final DexcomReader dexService = DexcomReader();
-Chang    Radius _radius = const Radius.circular(32.0);
+    final DexcomReader _dexcomReader = DexcomReader();
+    Radius _radius = const Radius.circular(32.0);
     return InkWell(
       onTap: () async {
-        await dexService.connectWithId(dexDevice.remoteId.str);
+        await _dexcomReader.connectWithId(dexDevice.remoteId.str);
       },
       child: Padding(
           padding: const EdgeInsets.only(left: 32, right: 32, top: 16, bottom: 16),

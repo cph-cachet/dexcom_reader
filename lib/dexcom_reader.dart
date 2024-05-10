@@ -18,13 +18,43 @@ class DexcomReader {
 
   /// Method is used to extract the BT names and device identifiers out of all nearby dexcom devices
   /// A G7 BT device would be e.g => device.platfornName = 'DXCMHO' and device.remoteId == deviceId. Use device.remoteId of the device you wish to connect to with the method connectWithId()
-  Future<List<BluetoothDevice>> getScannedDexcomDevices() async {
+  Future<BluetoothDevice> getFirstDexcomDevice() async {
     List<BluetoothDevice> devices = [];
-    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 330)); //Scan for a select amount of time. G7's output every 300-310 seconds
+    await FlutterBluePlus.startScan(
+        timeout: const Duration(
+            seconds:
+                400)); //Scan for a select amount of time. G7's output every 300-310 seconds
     var subscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
         if (result.device.platformName.contains('DXC')) {
           devices.add(result.device);
+          print("Scanned DXC Device: ${result.device.toString()}");
+          FlutterBluePlus.stopScan();
+          return;
+        }
+      }
+    });
+    await FlutterBluePlus.isScanning.where((val) => val == false).first;
+    subscription.cancel();
+    return devices.first;
+  }
+
+  /// Method is used to extract the BT names and device identifiers out of all nearby dexcom devices
+  /// A G7 BT device would be e.g => device.platfornName = 'DXCMHO' and device.remoteId == deviceId. Use device.remoteId of the device you wish to connect to with the method connectWithId()
+  Future<List<BluetoothDevice>> getScannedDexcomDevices() async {
+    List<BluetoothDevice> devices = [];
+    await FlutterBluePlus.startScan(
+        timeout: const Duration(
+            seconds:
+                330)); //Scan for a select amount of time. G7's output every 300-310 seconds
+    var subscription = FlutterBluePlus.scanResults.listen((results) {
+      while (devices.isEmpty) {
+        for (ScanResult result in results) {
+          if (result.device.platformName.contains('DXC')) {
+            devices.add(result.device);
+            print("Scanned DXC Device: ${result.device.toString()}");
+            break;
+          }
         }
       }
     });
@@ -47,12 +77,14 @@ class DexcomReader {
           await characteristic.setNotifyValue(true);
           _deviceSubscription =
               characteristic.onValueReceived.distinct().listen((data) {
-                _statusController.add(DexcomDeviceStatus.connected);
-                if (data.length == 19) {
-                  _glucoseReadingsController
-                      .add(decodeGlucosePacket(Uint8List.fromList(data)));
-                }
-              });
+            _statusController.add(DexcomDeviceStatus.connected);
+            if (data.length == 19) {
+              EGlucoseRxMessage streamMsg =
+                  decodeGlucosePacket(Uint8List.fromList(data));
+              _glucoseReadingsController.add(streamMsg);
+              print("glucosemessage: ${streamMsg.toString()}}");
+            }
+          });
         }
       }
     }

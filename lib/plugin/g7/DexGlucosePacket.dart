@@ -1,3 +1,5 @@
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
 class DexGlucosePacket {
   // Todo: Finish implementing the Dexcom Glucose Packet constructor. Will be used to store constructor data in SharedPreferences in JSON format
   // Todo: Decide which parameters should be stored and which data is possibly irrelevant.
@@ -15,6 +17,7 @@ class DexGlucosePacket {
   double _trend;
   int _age;
   bool _valid;
+  DeviceIdentifier _deviceIdentifier;
 
   // All these fields are given and decoded like in XDrip
   // https://github.com/NightscoutFoundation/xDrip/blob/master/app/src/main/java/com/eveningoutpost/dexdrip/cgm/dex/g7/EGlucoseRxMessage.java
@@ -31,7 +34,8 @@ class DexGlucosePacket {
       this._state,
       this._trend,
       this._age,
-      this._valid);
+      this._valid,
+      this._deviceIdentifier);
 
   // Getters
   int get statusRaw => _statusRaw;
@@ -47,6 +51,8 @@ class DexGlucosePacket {
   double get trend => _trend;
   int get age => _age;
   bool get valid => _valid;
+  DeviceIdentifier get deviceIdentifier => _deviceIdentifier;
+
 
 // toJson Method
   Map<String, dynamic> toJson() {
@@ -63,7 +69,8 @@ class DexGlucosePacket {
       'state': _state,
       'trend': _trend,
       'age': _age,
-      'valid': _valid
+      'valid': _valid,
+      'deviceIdentifier': _deviceIdentifier
     };
   }
 
@@ -83,6 +90,7 @@ class DexGlucosePacket {
       json['trend'],
       json['age'],
       json['valid'] ?? true, // Default to true if not provided
+      json['remoteId']
     );
   }
 }

@@ -25,7 +25,7 @@ class DexcomDeviceCard extends StatelessWidget {
     TextStyle tStyle2 = GoogleFonts.montserrat(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500);
 
     final DexcomReader dexService = DexcomReader();
-    Radius _radius = const Radius.circular(16.0);
+Chang    Radius _radius = const Radius.circular(32.0);
     return InkWell(
       onTap: () async {
         await dexService.connectWithId(dexDevice.remoteId.str);
@@ -44,8 +44,18 @@ class DexcomDeviceCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 12.0, top: 18.0, bottom: 18.0),
+                    child: Text(
+                      "Device: ${dexDevice.platformName.isEmpty ? "N/A" : dexDevice.platformName}",
+                      style: tStyle1,
+                    ),
+                  ),
+                ),
                 Container(
-                  padding: const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 12.0),
+                  padding: const EdgeInsets.only(left: 12.0, top: 18.0, bottom: 18.0),
                   child: Text(
                     "Glucose: ${latestGlucosePacket != null ? latestGlucosePacket!.glucose : ""} mmol/L",
                     style: tStyle1,
@@ -62,7 +72,7 @@ class DexcomDeviceCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 12.0),
+                  padding: const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 18.0),
                   child: Text(
                     latestGlucosePacket != null
                         ? "Timestamp: ${convertTimeStampToDatetime(latestGlucosePacket!.timestamp)}"

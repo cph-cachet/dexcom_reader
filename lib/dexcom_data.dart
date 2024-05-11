@@ -15,7 +15,7 @@ class DexcomData {
   void example() async {
     var dexcomReader = DexcomReader();
     // Scan for devices and handle the case where no device is found
-    List<BluetoothDevice> devices = await dexcomReader.getFirstDexcomDevice();
+    List<BluetoothDevice> devices = await dexcomReader.getScannedDexcomDevices();
     List<EGlucoseRxMessage> glucoseMessages = [];
 
     await dexcomReader.connectWithId(devices[0].remoteId.str);

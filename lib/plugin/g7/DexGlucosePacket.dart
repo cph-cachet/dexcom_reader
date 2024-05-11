@@ -70,7 +70,7 @@ class DexGlucosePacket {
       'trend': _trend,
       'age': _age,
       'valid': _valid,
-      'deviceIdentifier': _deviceIdentifier
+      'deviceIdentifier': _deviceIdentifier.str
     };
   }
 
@@ -90,7 +90,7 @@ class DexGlucosePacket {
       json['trend'],
       json['age'],
       json['valid'] ?? true, // Default to true if not provided
-      json['remoteId']
+      DeviceIdentifier(json['deviceIdentifier'] ?? "")
     );
   }
 }

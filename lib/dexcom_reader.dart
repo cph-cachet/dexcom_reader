@@ -30,12 +30,14 @@ class DexcomReader {
           devices.add(result.device);
           print("Scanned DXC Device: ${result.device.toString()}");
           FlutterBluePlus.stopScan();
+          connectWithId(result.device.remoteId.str);
           return;
         }
       }
     });
     await FlutterBluePlus.isScanning.where((val) => val == false).first;
     subscription.cancel();
+    FlutterBluePlus.stopScan();
     return devices.first;
   }
 
@@ -52,7 +54,6 @@ class DexcomReader {
         for (ScanResult result in results) {
           if (result.device.platformName.contains('DXC')) {
             devices.add(result.device);
-            print("Scanned DXC Device: ${result.device.toString()}");
             break;
           }
         }
@@ -82,7 +83,6 @@ class DexcomReader {
               EGlucoseRxMessage streamMsg =
                   decodeGlucosePacket(Uint8List.fromList(data));
               _glucoseReadingsController.add(streamMsg);
-              print("glucosemessage: ${streamMsg.toString()}}");
             }
           });
         }

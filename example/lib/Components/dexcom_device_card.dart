@@ -1,5 +1,6 @@
 import 'package:dexcom_reader/dexcom_reader.dart';
 import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
+import 'package:dexcom_reader_example/Components/dexcom_device_details.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:intl/intl.dart';
@@ -9,9 +10,7 @@ class DexcomDeviceCard extends StatelessWidget {
   final DexGlucosePacket? latestGlucosePacket;
   final BluetoothDevice dexDevice;
   const DexcomDeviceCard(
-      {super.key,
-      required this.latestGlucosePacket,
-      required this.dexDevice});
+      {super.key, required this.latestGlucosePacket, required this.dexDevice});
 
   @override
   Widget build(BuildContext context) {
@@ -21,22 +20,30 @@ class DexcomDeviceCard extends StatelessWidget {
       spreadRadius: 1,
       offset: const Offset(3, 3),
     );
-    TextStyle tStyle1 = GoogleFonts.roboto(fontSize: 20, color: Colors.white, fontWeight: FontWeight.w500);
-    TextStyle tStyle2 = GoogleFonts.montserrat(fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500);
+    TextStyle tStyle1 = GoogleFonts.roboto(
+        fontSize: 20, color: Colors.white, fontWeight: FontWeight.w500);
+    TextStyle tStyle2 = GoogleFonts.montserrat(
+        fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500);
 
     final DexcomReader _dexcomReader = DexcomReader();
     Radius _radius = const Radius.circular(32.0);
     return InkWell(
       onTap: () async {
-        await _dexcomReader.connectWithId(dexDevice.remoteId.str);
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => DexcomDeviceDetailsPage(
+                      identifier: dexDevice.remoteId,
+                    )));
       },
       child: Padding(
-          padding: const EdgeInsets.only(left: 32, right: 32, top: 16, bottom: 16),
+          padding:
+              const EdgeInsets.only(left: 32, right: 32, top: 16, bottom: 16),
           child: Container(
             decoration: BoxDecoration(
-              boxShadow: [
-                bshadow1,
-              ],
+                boxShadow: [
+                  bshadow1,
+                ],
                 color: Colors.lightGreenAccent.withOpacity(0.5),
                 borderRadius: BorderRadius.only(
                     topLeft: _radius, bottomLeft: _radius, topRight: _radius)),
@@ -47,22 +54,28 @@ class DexcomDeviceCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.center,
                   child: Container(
-                    padding: const EdgeInsets.only(left: 12.0, top: 18.0, bottom: 18.0),
+                    padding: const EdgeInsets.only(
+                        left: 12.0, top: 18.0, bottom: 18.0),
                     child: Text(
                       "Device: ${dexDevice.platformName.isEmpty ? dexDevice.remoteId : dexDevice.platformName}",
-                      style: GoogleFonts.roboto(fontSize: dexDevice.platformName.isEmpty ? 16 : 20, color: Colors.white, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.roboto(
+                          fontSize: dexDevice.platformName.isEmpty ? 16 : 20,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.only(left: 12.0, top: 18.0, bottom: 18.0),
+                  padding: const EdgeInsets.only(
+                      left: 12.0, top: 18.0, bottom: 18.0),
                   child: Text(
                     "Glucose: ${latestGlucosePacket != null ? latestGlucosePacket!.glucose : ""} mmol/L",
                     style: tStyle1,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 12.0),
+                  padding: const EdgeInsets.only(
+                      left: 12.0, top: 12.0, bottom: 12.0),
                   child: Text(
                     latestGlucosePacket != null
                         ? "Trend: ${latestGlucosePacket!.trend}"
@@ -72,7 +85,8 @@ class DexcomDeviceCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.only(left: 12.0, top: 12.0, bottom: 18.0),
+                  padding: const EdgeInsets.only(
+                      left: 12.0, top: 12.0, bottom: 18.0),
                   child: Text(
                     latestGlucosePacket != null
                         ? "Timestamp: ${convertTimeStampToDatetime(latestGlucosePacket!.timestamp)}"

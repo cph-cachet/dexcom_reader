@@ -7,7 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class DexcomDeviceDetailsPage extends StatefulWidget {
-  DeviceIdentifier identifier;
+  final DeviceIdentifier identifier;
   const DexcomDeviceDetailsPage({super.key, required this.identifier});
 
   @override

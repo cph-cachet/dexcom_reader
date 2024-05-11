@@ -12,7 +12,7 @@ class DexcomReader {
   final _statusController = StreamController<DexcomDeviceStatus>();
   Stream<DexcomDeviceStatus> get status => _statusController.stream;
 
-  final _glucoseReadingsController = StreamController<EGlucoseRxMessage>();
+  final _glucoseReadingsController = StreamController<EGlucoseRxMessage>.broadcast();
   Stream<EGlucoseRxMessage> get glucoseReadings =>
       _glucoseReadingsController.stream;
 

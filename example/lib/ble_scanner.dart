@@ -4,7 +4,6 @@ import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:dexcom_reader_example/Components/bte_scanning_widget.dart';
 import 'package:dexcom_reader_example/Components/dexcom_device_card.dart';
-import 'package:dexcom_reader_example/StateStorage/bluetooth_permission_service.dart';
 import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -23,6 +22,7 @@ class _BleScannerState extends State<BleScanner> {
   DexGlucosePacket? latestGlucosePacket;
   PermissionStatus btePermissionStatus = PermissionStatus.denied;
   bool isScanning = false;
+  bool autoScan = true;
   List<BluetoothDevice> devices = [];
   List<DexcomDeviceCard> deviceCards = [];
   StreamSubscription<EGlucoseRxMessage>? glucoseReadingsSubscription;
@@ -62,9 +62,11 @@ class _BleScannerState extends State<BleScanner> {
       setState(() => isScanning = true);
       try {
         BluetoothDevice? device = await dexcomReader.getFirstDexcomDevice();
-        setState(() {
-          devices.add(device);
-        });
+        if (devices.any((item) => item.remoteId != device.remoteId)) {
+          setState(() {
+            devices.add(device);
+          });
+        }
         print("Scanned device $device");
         //await readDevice(device);
         await listenToGlucoseStream(device);
@@ -76,7 +78,7 @@ class _BleScannerState extends State<BleScanner> {
   }
 
   Future<void> listenToGlucoseStream(BluetoothDevice device) async {
-    glucoseReadingsSubscription?.cancel();
+    await glucoseReadingsSubscription?.cancel();
     glucoseReadingsSubscription = dexcomReader.glucoseReadings.distinct().listen(
       (reading) {
         setLatestPacket(reading, device);
@@ -105,6 +107,10 @@ class _BleScannerState extends State<BleScanner> {
           device.remoteId);
     });
     stateStorageService.saveLatestDexGlucosePacket(latestGlucosePacket!);
+    if(autoScan){
+      glucoseReadingsSubscription?.cancel();
+      listenToGlucoseStream(devices.first);
+    }
   }
 
   @override
@@ -117,11 +123,11 @@ class _BleScannerState extends State<BleScanner> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Flexible(
-              flex: 5,
+              flex: 4,
               child: deviceListView(),
             ),
             Expanded(
-              flex: 1,
+              flex: 2,
               child: BTEScanningWidget(
                   isScanning: isScanning,
                   permissionStatus: btePermissionStatus,

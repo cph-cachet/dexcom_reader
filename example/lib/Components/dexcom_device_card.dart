@@ -49,8 +49,8 @@ class DexcomDeviceCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.only(left: 12.0, top: 18.0, bottom: 18.0),
                     child: Text(
-                      "Device: ${dexDevice.platformName.isEmpty ? "N/A" : dexDevice.platformName}",
-                      style: tStyle1,
+                      "Device: ${dexDevice.platformName.isEmpty ? dexDevice.remoteId : dexDevice.platformName}",
+                      style: GoogleFonts.roboto(fontSize: dexDevice.platformName.isEmpty ? 16 : 20, color: Colors.white, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ),

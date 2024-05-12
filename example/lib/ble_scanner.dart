@@ -20,6 +20,7 @@ class _BleScannerState extends State<BleScanner> {
   DexcomReader dexcomReader = DexcomReader();
   StateStorageService stateStorageService = StateStorageService();
   DexGlucosePacket? latestGlucosePacket;
+  BluetoothDevice? latestDexcomDevice;
   PermissionStatus btePermissionStatus = PermissionStatus.denied;
   bool isScanning = false;
   bool autoScan = true;
@@ -47,11 +48,13 @@ class _BleScannerState extends State<BleScanner> {
   }
 
   Future<void> getLastPacket() async {
-    DexGlucosePacket? packet = await stateStorageService.getLatestDexGlucosePacket();
-    if(packet != null && packet.deviceIdentifier.str.isNotEmpty){
+    DexGlucosePacket? packet =
+        await stateStorageService.getLatestDexGlucosePacket();
+    if (packet != null && packet.deviceIdentifier.str.isNotEmpty) {
       setState(() {
         latestGlucosePacket = packet;
-        devices.add(BluetoothDevice(remoteId: packet.deviceIdentifier));
+        latestDexcomDevice = BluetoothDevice(remoteId: packet.deviceIdentifier);
+        devices.add(latestDexcomDevice!);
       });
     }
   }
@@ -66,14 +69,22 @@ class _BleScannerState extends State<BleScanner> {
             devices.add(device);
           });
         }
-        print("Scanned device $device");
-        //await readDevice(device);
         await listenToGlucoseStream(device);
       } finally {
         setState(() => isScanning = false);
       }
     }
     setState(() => isScanning = false);
+  }
+  
+  Future<void> subscribeToStream() async {
+    while(autoScan){
+      setState(() => isScanning = true);
+      await dexcomReader.listenForGlucoseData(latestGlucosePacket!.deviceIdentifier.str);
+      listenToGlucoseStream(latestDexcomDevice!);
+      setState(() => isScanning = false);
+      await Future.delayed(const Duration(seconds: 270));
+    }
   }
 
   Future<void> listenToGlucoseStream(BluetoothDevice device) async {
@@ -82,19 +93,20 @@ class _BleScannerState extends State<BleScanner> {
       glucoseReadingsSubscription!.cancel();
       glucoseReadingsSubscription = null;
     }
-
     // Delay to ensure all cleanup is done - this might be optional but can be a safe practice
     await Future.delayed(const Duration(milliseconds: 100));
 
     // Re-subscribe if the subscription is confirmed to be null
-    glucoseReadingsSubscription = dexcomReader.glucoseReadings.distinct().listen(
-            (reading) {
-          setLatestPacket(reading, device);
-        },
-        onError: (error) {
-          print("Error listening to Stream<EGlucoseRxMessage> glucoseReadings: $error");
-        },
-      );
+    glucoseReadingsSubscription =
+        dexcomReader.glucoseReadings.distinct().listen(
+      (reading) {
+        setLatestPacket(reading, device);
+      },
+      onError: (error) {
+        print(
+            "Error listening to Stream<EGlucoseRxMessage> glucoseReadings: $error");
+      },
+    );
   }
 
   // remoteID for current G7 : 2BCFED8A-09E0-BE5B-6763-EF32C6154380 , platformName #1 DXCMHO #2 DXCMWL
@@ -115,9 +127,10 @@ class _BleScannerState extends State<BleScanner> {
           reading.age,
           reading.valid,
           device.remoteId);
+      print("Saving packet: ${latestGlucosePacket.toString()}");
+      stateStorageService.saveLatestDexGlucosePacket(latestGlucosePacket!);
+      stateStorageService.addGlucosePacketReading(latestGlucosePacket!);
     });
-    stateStorageService.saveLatestDexGlucosePacket(latestGlucosePacket!);
-    stateStorageService.addGlucosePacketReading(latestGlucosePacket!);
   }
 
   @override
@@ -138,7 +151,7 @@ class _BleScannerState extends State<BleScanner> {
               child: BTEScanningWidget(
                   isScanning: isScanning,
                   permissionStatus: btePermissionStatus,
-                  scanButtonFunc: scanAndReadDevices),
+                  scanButtonFunc: subscribeToStream),
             )
           ],
         ));

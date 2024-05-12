@@ -53,9 +53,7 @@ class EGlucoseRxMessage {
   }
 
   double convertmgToMMOL(int rawVal) {
-    double mmol = rawVal / 18.018;
+    double mmol = rawVal / 18.0182;
     return (mmol * 10).round() / 10.0; // Converts the raw value which is in mg/dL to mmol/L and rounds to one decimal place
   }
-
-
 }

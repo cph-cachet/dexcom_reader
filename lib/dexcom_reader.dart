@@ -12,7 +12,8 @@ class DexcomReader {
   final _statusController = StreamController<DexcomDeviceStatus>();
   Stream<DexcomDeviceStatus> get status => _statusController.stream;
 
-  final _glucoseReadingsController = StreamController<EGlucoseRxMessage>.broadcast();
+  final _glucoseReadingsController =
+      StreamController<EGlucoseRxMessage>.broadcast();
   Stream<EGlucoseRxMessage> get glucoseReadings =>
       _glucoseReadingsController.stream;
 
@@ -97,9 +98,15 @@ class DexcomReader {
 
   Future<void> listenForGlucoseData(String deviceId) async {
     BluetoothDevice device =
-    BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
+        BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
     print("Attempting to connect to ${device.remoteId}");
-    await device.connect().timeout(Duration(seconds: 300));
+    await device
+        .connect()
+        .timeout(Duration(seconds: 300))
+        .onError((error, stackTrace) => (){
+          print("FlutterBluePlus timed out... Will connect again");
+      listenForGlucoseData(deviceId);
+    });
     device.mtu.listen((mtu) {});
     List<BluetoothService> services = await device.discoverServices();
     for (var service in services) {
@@ -109,13 +116,13 @@ class DexcomReader {
           await characteristic.setNotifyValue(true);
           _deviceSubscription =
               characteristic.onValueReceived.distinct().listen((data) {
-                _statusController.add(DexcomDeviceStatus.connected);
-                if (data.length == 19) {
-                  EGlucoseRxMessage streamMsg =
+            _statusController.add(DexcomDeviceStatus.connected);
+            if (data.length == 19) {
+              EGlucoseRxMessage streamMsg =
                   decodeGlucosePacket(Uint8List.fromList(data));
-                  _glucoseReadingsController.add(streamMsg);
-                }
-              });
+              _glucoseReadingsController.add(streamMsg);
+            }
+          });
         }
       }
     }

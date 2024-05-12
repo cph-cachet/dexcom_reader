@@ -24,7 +24,6 @@ class _BleScannerState extends State<BleScanner> {
   bool isScanning = false;
   bool autoScan = true;
   List<BluetoothDevice> devices = [];
-  List<DexcomDeviceCard> deviceCards = [];
   StreamSubscription<EGlucoseRxMessage>? glucoseReadingsSubscription;
 
   @override
@@ -32,6 +31,12 @@ class _BleScannerState extends State<BleScanner> {
     super.initState();
     getLastPacket();
     _checkBluetoothPermission(); // Before using the plugin you must first have given permission to using bluetooth/Flutter blue plus.
+  }
+
+  @override
+  void dispose() {
+    glucoseReadingsSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkBluetoothPermission() async {
@@ -49,12 +54,6 @@ class _BleScannerState extends State<BleScanner> {
         devices.add(BluetoothDevice(remoteId: packet.deviceIdentifier));
       });
     }
-  }
-
-  @override
-  void dispose() {
-    glucoseReadingsSubscription?.cancel();
-    super.dispose();
   }
 
   Future<void> scanAndReadDevices() async {

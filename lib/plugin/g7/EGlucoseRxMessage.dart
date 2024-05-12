@@ -1,8 +1,4 @@
 import 'dart:typed_data';
-
-// Other potential messages:
-//SensorRxMessage -> 0x2f:{TransmitterStatus, timestamp, unfiltered, filtered}
-// 
 class EGlucoseRxMessage {
   int statusRaw = 0;
   int clock = 0;
@@ -44,7 +40,7 @@ class EGlucoseRxMessage {
         glucoseIsDisplayOnly = (glucoseBytes & 0xf000) > 0;
         // Perform bitwise AND between glucoseBytes and hex value 0xfff = 111111111111, which extracts the relevant lower 12 bits from the glucoseBytes value after being read in little endian order.
         glucoseRaw = glucoseBytes & 0xfff;
-        glucose = convertReadValToGlucose(glucoseRaw);
+        glucose = convertmgToMMOL(glucoseRaw);
         state = data.getUint8(offset++);
         trend = data.getInt8(offset++) / 10.0;
 
@@ -56,20 +52,10 @@ class EGlucoseRxMessage {
     }
   }
 
-  /// TODO: Refactor this to use the same regression model as XDrip
-  double convertReadValToGlucose(int rawVal) {
-    double glucose = 5.5; // Starting glucose level at val 100
-    int baseline = 100; // Baseline value for glucose calculations
-    // Calculate the step difference from the baseline
-    int stepDifference = rawVal - baseline;
-    // Ensure we count every full 2-step increment only
-    int fullSteps = stepDifference ~/
-        2; // Using integer division to round down to the nearest even number
-    // Glucose increases by 0.1 mmol/L for each full 2-step increment
-    double totalGlucoseChange = fullSteps * 0.1;
-    // Update the glucose level based on the step difference
-    glucose += totalGlucoseChange;
-    return glucose;
+  double convertmgToMMOL(int rawVal) {
+    double mmol = rawVal / 18.018;
+    return (mmol * 10).round() / 10.0; // Converts the raw value which is in mg/dL to mmol/L and rounds to one decimal place
   }
+
 
 }

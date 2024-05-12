@@ -13,8 +13,6 @@ class StateStorageService {
       return null;
     }
     Map<String, dynamic> packetMap = json.decode(packetString);
-    print("fetched: $packetString");
-    print("decoded: $packetMap");
     DexGlucosePacket dexGlucosePacket = DexGlucosePacket.fromJson(packetMap);
     return dexGlucosePacket;
   }
@@ -22,7 +20,6 @@ class StateStorageService {
   Future<void> saveLatestDexGlucosePacket(DexGlucosePacket packet) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String jsonString = json.encode(packet.toJson());
-    print("saving: $jsonString");
     prefs.setString("LatestDexGlucosePacket", jsonString);
   }
 
@@ -35,8 +32,6 @@ class StateStorageService {
 
     // Add the new packet's JSON string to the list
     existingPackets.add(jsonString);
-    print("latest reading has been added to packets, new length: ${existingPackets.length}");
-
     // Save the updated list back to SharedPreferences
     await prefs.setStringList("${packet.deviceIdentifier.str}/LatestDexGlucosePackets", existingPackets);
   }
@@ -49,8 +44,10 @@ class StateStorageService {
     // Check if there are any stored packets, if not return an empty list
     if (packetsString == null) return [];
     print("number of readings saved on device: ${packetsString.length}");
+    print(packetsString.last);
     // Decode each JSON string back into a DexGlucosePacket object
-    return packetsString.map((jsonStr) => DexGlucosePacket.fromJson(json.decode(jsonStr))).toList();
+    List<DexGlucosePacket> packets = packetsString.map((jsonStr) => DexGlucosePacket.fromJson(json.decode(jsonStr))).toList();
+    return packets;
   }
 
 

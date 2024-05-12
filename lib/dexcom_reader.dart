@@ -16,6 +16,9 @@ class DexcomReader {
   Stream<EGlucoseRxMessage> get glucoseReadings =>
       _glucoseReadingsController.stream;
 
+  final _mtuPacketsController = StreamController<List<int>>.broadcast();
+  Stream<List<int>> get mtuPackets => _mtuPacketsController.stream;
+
   /// Method is used to extract the BT names and device identifiers out of all nearby dexcom devices
   /// A G7 BT device would be e.g => device.platfornName = 'DXCMHO' and device.remoteId == deviceId. Use device.remoteId of the device you wish to connect to with the method connectWithId()
   Future<BluetoothDevice> getFirstDexcomDevice() async {
@@ -23,14 +26,14 @@ class DexcomReader {
     await FlutterBluePlus.startScan(
         timeout: const Duration(
             seconds:
-                400)); //Scan for a select amount of time. G7's output every 300-310 seconds
+                300)); //Scan for a select amount of time. G7's output every 300-310 seconds
     var subscription = FlutterBluePlus.scanResults.listen((results) {
       for (ScanResult result in results) {
         if (result.device.platformName.contains('DXC')) {
           devices.add(result.device);
           print("Scanned DXC Device: ${result.device.toString()}");
           FlutterBluePlus.stopScan();
-          connectWithId(result.device.remoteId.str);
+          //connectWithId(result.device.remoteId.str); // This should be called by the app implementing the plugin since the device will have a positive connection state now
           return;
         }
       }
@@ -68,7 +71,8 @@ class DexcomReader {
   Future<void> connectWithId(String deviceId) async {
     BluetoothDevice device =
         BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
-    await device.connect();
+    print("Attempting to connect to ${device.remoteId}");
+    await device.connect().timeout(Duration(seconds: 300));
     device.mtu.listen((mtu) {});
     List<BluetoothService> services = await device.discoverServices();
     for (var service in services) {
@@ -79,12 +83,39 @@ class DexcomReader {
           _deviceSubscription =
               characteristic.onValueReceived.distinct().listen((data) {
             _statusController.add(DexcomDeviceStatus.connected);
+            _mtuPacketsController.add(data);
             if (data.length == 19) {
               EGlucoseRxMessage streamMsg =
                   decodeGlucosePacket(Uint8List.fromList(data));
               _glucoseReadingsController.add(streamMsg);
             }
           });
+        }
+      }
+    }
+  }
+
+  Future<void> listenForGlucoseData(String deviceId) async {
+    BluetoothDevice device =
+    BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
+    print("Attempting to connect to ${device.remoteId}");
+    await device.connect().timeout(Duration(seconds: 300));
+    device.mtu.listen((mtu) {});
+    List<BluetoothService> services = await device.discoverServices();
+    for (var service in services) {
+      for (var characteristic in service.characteristics) {
+        if (characteristic.properties.notify ||
+            characteristic.properties.indicate) {
+          await characteristic.setNotifyValue(true);
+          _deviceSubscription =
+              characteristic.onValueReceived.distinct().listen((data) {
+                _statusController.add(DexcomDeviceStatus.connected);
+                if (data.length == 19) {
+                  EGlucoseRxMessage streamMsg =
+                  decodeGlucosePacket(Uint8List.fromList(data));
+                  _glucoseReadingsController.add(streamMsg);
+                }
+              });
         }
       }
     }

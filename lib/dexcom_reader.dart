@@ -70,31 +70,49 @@ class DexcomReader {
 
   /// Connect to a specific Dexcom G7 if you know its bluetooth identifier
   Future<void> connectWithId(String deviceId) async {
-    BluetoothDevice device =
-        BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
-    print("Attempting to connect to ${device.remoteId}");
-    await device.connect().timeout(Duration(seconds: 300));
+    BluetoothDevice device = BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
+
+    // Retry connection indefinitely until successful since device is
+    bool isConnected = false;
+    while (!isConnected) {
+      try {
+        print("Attempting to connect to ${device.remoteId}");
+        await device.connect().timeout(Duration(seconds: 300));
+        isConnected = true;  // Update flag on successful connection
+      } catch (e) {
+
+        print("Connection failed: $e");
+        print("Retrying connection...");
+        if(e == "FlutterBluePlusException | connect | fbp-code: 10 | connection canceled"){
+          print("trueee lmao");
+        }
+      }
+    }
+
+    // Connection has been established, proceed with service/message discovery
     device.mtu.listen((mtu) {});
     List<BluetoothService> services = await device.discoverServices();
     for (var service in services) {
       for (var characteristic in service.characteristics) {
         if (characteristic.properties.notify ||
-            characteristic.properties.indicate) {
+            characteristic.properties.indicate) { // G7 Notifies when it releases from hold and sends sample
           await characteristic.setNotifyValue(true);
           _deviceSubscription =
               characteristic.onValueReceived.distinct().listen((data) {
-            _statusController.add(DexcomDeviceStatus.connected);
-            _mtuPacketsController.add(data);
-            if (data.length == 19) {
-              EGlucoseRxMessage streamMsg =
+                _statusController.add(DexcomDeviceStatus.connected);
+                _mtuPacketsController.add(data);
+                if (data.length == 19) {
+                  EGlucoseRxMessage streamMsg =
                   decodeGlucosePacket(Uint8List.fromList(data));
-              _glucoseReadingsController.add(streamMsg);
-            }
-          });
+                  _glucoseReadingsController.add(streamMsg);
+                }
+              });
         }
       }
     }
+    _statusController.add(DexcomDeviceStatus.disconnected);
   }
+
 
   Future<void> listenForGlucoseData(String deviceId) async {
     BluetoothDevice device =
@@ -102,7 +120,6 @@ class DexcomReader {
     print("Attempting to connect to ${device.remoteId}");
     await device
         .connect()
-        .timeout(Duration(seconds: 300))
         .onError((error, stackTrace) => (){
           print("FlutterBluePlus timed out... Will connect again");
       listenForGlucoseData(deviceId);

@@ -2,12 +2,12 @@ import 'package:dexcom_reader_example/Components/scan_button.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class BTEScanningWidget extends StatelessWidget {
+class DexcomSubscribeToDeviceWidget extends StatelessWidget {
   final bool isScanning;
   final PermissionStatus permissionStatus;
   final VoidCallback scanButtonFunc;
 
-  const BTEScanningWidget({
+  const DexcomSubscribeToDeviceWidget({
     Key? key,
     required this.isScanning,
     required this.permissionStatus,

@@ -9,16 +9,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class BleScanner extends StatefulWidget {
-  const BleScanner({super.key});
+class DexGlucoseListenPage extends StatefulWidget {
+  const DexGlucoseListenPage({super.key});
 
   @override
-  _BleScannerState createState() => _BleScannerState();
+  _DexGlucoseListenPageState createState() => _DexGlucoseListenPageState();
 }
 
-class _BleScannerState extends State<BleScanner> {
-  DexcomReader dexcomReader = DexcomReader();
-  StateStorageService stateStorageService = StateStorageService();
+class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
+  final DexcomReader dexcomReader = DexcomReader();
+  final StateStorageService stateStorageService = StateStorageService();
   DexGlucosePacket? latestGlucosePacket;
   BluetoothDevice? latestDexcomDevice;
   PermissionStatus btePermissionStatus = PermissionStatus.denied;
@@ -31,12 +31,13 @@ class _BleScannerState extends State<BleScanner> {
   void initState() {
     super.initState();
     getLastPacket();
-    _checkBluetoothPermission(); // Before using the plugin you must first have given permission to using bluetooth/Flutter blue plus.
+    _checkBluetoothPermission(); // Ensure Bluetooth permission is granted before using the plugin.
   }
 
   @override
   void dispose() {
     glucoseReadingsSubscription?.cancel();
+    dexcomReader.disconnect();
     super.dispose();
   }
 
@@ -51,22 +52,127 @@ class _BleScannerState extends State<BleScanner> {
     DexGlucosePacket? packet =
         await stateStorageService.getLatestDexGlucosePacket();
     if (packet != null && packet.deviceIdentifier.str.isNotEmpty) {
-      List<DexGlucosePacket>? packets =
-      await stateStorageService.getGlucosePacketReadings(packet.deviceIdentifier);
+      List<DexGlucosePacket>? packets = await stateStorageService
+          .getGlucosePacketReadings(packet.deviceIdentifier);
       setState(() {
         latestGlucosePacket = packets.last;
-        print("lastPacket: ${latestGlucosePacket!.toJson().toString()}");
+        print("lastPacket: ${latestGlucosePacket!.toJson()}");
         latestDexcomDevice = BluetoothDevice(remoteId: packet.deviceIdentifier);
         devices.add(latestDexcomDevice!);
       });
     }
   }
 
+  Future<void> subscribeToStream() async {
+    print("SubscribeToStream starting connection attempts... $isScanning");
+    if (!isScanning) {
+      setState(() => isScanning = true);
+      while (autoScan) {
+        bool connected = false;
+        while (!connected) {
+          try {
+            await dexcomReader
+                .connectWithId(latestGlucosePacket!.deviceIdentifier.str);
+            connected = true;
+          } catch (e) {
+            if (e.toString().contains("connection canceled") ||
+                e.toString().contains("timeout")) {
+              print("Connection failed: $e, retrying...");
+            } else {
+              break;
+            }
+          }
+        }
+        if (connected) {
+          glucoseReadingsSubscription?.cancel();
+          glucoseReadingsSubscription =
+              dexcomReader.glucoseReadings.distinct().listen(
+            (reading) {
+              setLatestPacket(
+                  reading,
+                  BluetoothDevice(
+                      remoteId: latestGlucosePacket!.deviceIdentifier));
+            },
+          );
+        }
+      }
+      await dexcomReader.disconnect();
+    }
+    await dexcomReader.disconnect();
+    setState(() => isScanning = false);
+  }
+
+  void setLatestPacket(EGlucoseRxMessage reading, BluetoothDevice device) {
+    final packet = DexGlucosePacket(
+      reading.statusRaw,
+      reading.glucoseRaw,
+      reading.glucose,
+      reading.clock,
+      reading.timestamp,
+      reading.unfiltered,
+      reading.filtered,
+      reading.sequence,
+      reading.glucoseIsDisplayOnly,
+      reading.state,
+      reading.trend,
+      reading.age,
+      reading.valid,
+      device.remoteId,
+    );
+
+    setState(() {
+      latestGlucosePacket = packet;
+      print("Saving packet: ${latestGlucosePacket!.toJson()}");
+      stateStorageService.saveLatestDexGlucosePacket(latestGlucosePacket!);
+      stateStorageService.addGlucosePacketReading(latestGlucosePacket!);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('BLE Scanner')),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Flexible(flex: 4, child: deviceListView()),
+          Expanded(
+            flex: 2,
+            child: DexcomSubscribeToDeviceWidget(
+              isScanning: isScanning,
+              permissionStatus: btePermissionStatus,
+              scanButtonFunc: subscribeToStream,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget deviceListView() {
+    if (devices.isEmpty) {
+      return Center(child: Text("No devices found"));
+    } else {
+      return ListView.builder(
+        shrinkWrap: true,
+        itemCount: devices.length,
+        itemBuilder: (BuildContext context, int index) {
+          return DexcomDeviceCard(
+            latestGlucosePacket: latestGlucosePacket,
+            dexDevice: devices[index],
+          );
+        },
+      );
+    }
+  }
+}
+
+/*
   Future<void> scanAndReadDevices() async {
     if (!isScanning) {
       setState(() => isScanning = true);
       try {
-        BluetoothDevice? device = await dexcomReader.getFirstDexcomDevice();
+        BluetoothDevice? device = await dexcomReader.scanAndGetDexcomDevice();
         if (devices.any((item) => item.remoteId != device.remoteId)) {
           setState(() {
             devices.add(device);
@@ -79,93 +185,4 @@ class _BleScannerState extends State<BleScanner> {
     }
     setState(() => isScanning = false);
   }
-  
-  Future<void> subscribeToStream() async {
-    print("SubscribeToStream jumping into while loop");
-    while(autoScan){
-      setState(() => isScanning = true);
-      await dexcomReader.connectWithId(latestGlucosePacket!.deviceIdentifier.str);
-      // Cancel and nullify the existing subscription if it exists
-      if (glucoseReadingsSubscription != null) {
-        glucoseReadingsSubscription!.cancel();
-        glucoseReadingsSubscription = null;
-      }
-      // Re-subscribe if the subscription is confirmed to be null
-      glucoseReadingsSubscription =
-          dexcomReader.glucoseReadings.distinct().listen(
-                (reading) {
-              setLatestPacket(reading, BluetoothDevice(remoteId: latestGlucosePacket!.deviceIdentifier));
-            },
-            onError: (error) {
-              print(
-                  "Error listening to Stream<EGlucoseRxMessage> glucoseReadings: $error");
-            },
-          );
-      setState(() => isScanning = false);
-    }
-  }
-
-  // remoteID for current G7 : 2BCFED8A-09E0-BE5B-6763-EF32C6154380 , platformName #1 DXCMHO #2 DXCMWL
-  setLatestPacket(EGlucoseRxMessage reading, BluetoothDevice device) async {
-    setState(() {
-      latestGlucosePacket = DexGlucosePacket(
-          reading.statusRaw,
-          reading.glucoseRaw,
-          reading.glucose,
-          reading.clock,
-          reading.timestamp,
-          reading.unfiltered,
-          reading.filtered,
-          reading.sequence,
-          reading.glucoseIsDisplayOnly,
-          reading.state,
-          reading.trend,
-          reading.age,
-          reading.valid,
-          device.remoteId);
-      print("Saving packet: ${latestGlucosePacket!.toJson().toString()}");
-      stateStorageService.saveLatestDexGlucosePacket(latestGlucosePacket!);
-      stateStorageService.addGlucosePacketReading(latestGlucosePacket!);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: const Text('BLE Scanner'),
-        ),
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Flexible(
-              flex: 4,
-              child: deviceListView(),
-            ),
-            Expanded(
-              flex: 2,
-              child: BTEScanningWidget(
-                  isScanning: isScanning,
-                  permissionStatus: btePermissionStatus,
-                  scanButtonFunc: subscribeToStream),
-            )
-          ],
-        ));
-  }
-
-  Widget deviceListView() {
-    if (devices.isEmpty) {
-      return Center(child: Text("No devices found"));
-    } else {
-      return ListView.builder(
-        shrinkWrap: true,
-        itemCount: devices.length,
-        itemBuilder: (BuildContext context, int index) {
-          return DexcomDeviceCard(
-              latestGlucosePacket: latestGlucosePacket,
-              dexDevice: devices[index]);
-        },
-      );
-    }
-  }
-}
+ */

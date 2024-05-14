@@ -44,7 +44,6 @@ class StateStorageService {
     // Check if there are any stored packets, if not return an empty list
     if (packetsString == null) return [];
     print("number of readings saved on device: ${packetsString.length}");
-    print(packetsString.last);
     // Decode each JSON string back into a DexGlucosePacket object
     List<DexGlucosePacket> packets = packetsString.map((jsonStr) => DexGlucosePacket.fromJson(json.decode(jsonStr))).toList();
     return packets;

@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
+import 'package:dexcom_reader_example/models/dexdevice.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StateStorageService {
-
-
   Future<DexGlucosePacket?> getLatestDexGlucosePacket() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? packetString = prefs.getString("LatestDexGlucosePackets");
@@ -27,26 +26,53 @@ class StateStorageService {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String jsonString = json.encode(packet.toJson());
 
-    // Retrieve the existing list from SharedPreferences
-    List<String>? existingPackets = prefs.getStringList("${packet.deviceIdentifier.str}/LatestDexGlucosePackets") ?? [];
+    List<String>? existingPackets = prefs.getStringList(
+            "${packet.deviceIdentifier.str}/LatestDexGlucosePackets") ??
+        [];
 
-    // Add the new packet's JSON string to the list
     existingPackets.add(jsonString);
-    // Save the updated list back to SharedPreferences
-    await prefs.setStringList("${packet.deviceIdentifier.str}/LatestDexGlucosePackets", existingPackets);
+    await prefs.setStringList(
+        "${packet.deviceIdentifier.str}/LatestDexGlucosePackets",
+        existingPackets);
   }
 
-
-  Future<List<DexGlucosePacket>> getGlucosePacketReadings(DeviceIdentifier identifier) async {
+  Future<List<DexGlucosePacket>> getGlucosePacketReadings(
+      DeviceIdentifier identifier) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? packetsString = prefs.getStringList("${identifier.str}/LatestDexGlucosePackets");
+    List<String>? packetsString =
+        prefs.getStringList("${identifier.str}/LatestDexGlucosePackets");
 
-    // Check if there are any stored packets, if not return an empty list
     if (packetsString == null) return [];
     print("number of readings saved on device: ${packetsString.length}");
-    // Decode each JSON string back into a DexGlucosePacket object
-    List<DexGlucosePacket> packets = packetsString.map((jsonStr) => DexGlucosePacket.fromJson(json.decode(jsonStr))).toList();
+    List<DexGlucosePacket> packets = packetsString
+        .map((jsonStr) => DexGlucosePacket.fromJson(json.decode(jsonStr)))
+        .toList();
     return packets;
+  }
+
+  Future<void> saveDexcomDevice(DexDevice device) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String jsonString = json.encode(device.toJson());
+
+    List<String>? existingDevices = prefs.getStringList("/knownDexDevices") ?? [];
+
+    // Add the new device JSON string to the list
+    existingDevices.add(jsonString);
+    await prefs.setStringList("/knownDexDevices", existingDevices);
+  }
+
+  Future<List<DexDevice>> getKnownDexDevicesIfExist() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? devicesStringList = prefs.getStringList("/knownDexDevices");
+
+    if (devicesStringList == null) return [];
+
+    // Map each JSON string to a DexDevice instance
+    List<DexDevice> devices = devicesStringList
+        .map((jsonStr) => DexDevice.fromJson(json.decode(jsonStr)))
+        .toList();
+
+    return devices;
   }
 
 

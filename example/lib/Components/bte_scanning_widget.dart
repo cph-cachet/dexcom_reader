@@ -4,23 +4,22 @@ import 'package:permission_handler/permission_handler.dart';
 
 class DexcomSubscribeToDeviceWidget extends StatelessWidget {
   final bool isScanning;
-  final PermissionStatus permissionStatus;
   final VoidCallback scanButtonFunc;
 
   const DexcomSubscribeToDeviceWidget({
     Key? key,
     required this.isScanning,
-    required this.permissionStatus,
     required this.scanButtonFunc,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    print("scanning widget wussup $isScanning");
     return Center(
       child: Column(
         children: [
           Visibility(
-            visible: isScanning && !permissionStatus.isGranted,
+            visible: isScanning,
             replacement: ScanButton(
               isScanning: isScanning,
               func: scanButtonFunc,

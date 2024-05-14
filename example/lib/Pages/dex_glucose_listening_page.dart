@@ -21,7 +21,6 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
   final StateStorageService stateStorageService = StateStorageService();
   DexGlucosePacket? latestGlucosePacket;
   BluetoothDevice? latestDexcomDevice;
-  PermissionStatus btePermissionStatus = PermissionStatus.denied;
   bool isScanning = false;
   bool autoScan = true;
   List<BluetoothDevice> devices = [];
@@ -31,7 +30,6 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
   void initState() {
     super.initState();
     getLastPacket();
-    _checkBluetoothPermission(); // Ensure Bluetooth permission is granted before using the plugin.
   }
 
   @override
@@ -39,13 +37,6 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
     glucoseReadingsSubscription?.cancel();
     dexcomReader.disconnect();
     super.dispose();
-  }
-
-  Future<void> _checkBluetoothPermission() async {
-    var status = await Permission.bluetooth.request();
-    setState(() {
-      btePermissionStatus = status;
-    });
   }
 
   Future<void> getLastPacket() async {
@@ -140,7 +131,6 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
             flex: 2,
             child: DexcomSubscribeToDeviceWidget(
               isScanning: isScanning,
-              permissionStatus: btePermissionStatus,
               scanButtonFunc: subscribeToStream,
             ),
           ),

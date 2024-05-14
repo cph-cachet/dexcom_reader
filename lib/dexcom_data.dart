@@ -20,7 +20,7 @@ class DexcomData {
 
     await dexcomReader.connectWithId(devices[0].remoteId.str);
 
-    StreamSubscription statusSubscription = dexcomReader.status.listen((event) async {
+    StreamSubscription statusSubscription = dexcomReader.dexcomDeviceStatus.listen((event) async {
       if (event == DexcomDeviceStatus.connected) {
         // When connected, listen to glucose readings
         StreamSubscription glucoseReadingsSubscription = dexcomReader.glucoseReadings.listen((reading) {

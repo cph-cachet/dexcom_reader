@@ -44,8 +44,8 @@ class _TabbarPageState extends State<TabbarPage>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(icon: Icon(Icons.search), text: 'Scan Devices'),
-            Tab(icon: Icon(Icons.devices), text: 'Stored Devices'),
+            Tab(icon: Icon(Icons.search), text: 'Scan/Add Devices'),
+            Tab(icon: Icon(Icons.devices), text: 'Saved Devices'),
           ],
         ),
       ),

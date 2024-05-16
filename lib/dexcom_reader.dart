@@ -22,6 +22,7 @@ class DexcomReader {
   /// Method that scans for all nearby Dexcom Devices that are currently active
   /// A G7 BT device would be e.g => device.platformName = 'DXCMHO' and device.remoteId == deviceId. Use device.remoteId of the device you wish to connect to with the method connectWithId()
   Future<void> scanForAllDexcomDevices() async {
+    print("SETTING UP SCAN");
     List<BluetoothDevice> devices = [];
     await FlutterBluePlus.startScan(
         timeout: const Duration(
@@ -45,7 +46,7 @@ class DexcomReader {
   Future<void> connectWithId(String deviceId) async {
     final device = BluetoothDevice(remoteId: DeviceIdentifier(deviceId));
     bool isConnected = false;
-
+    FlutterBluePlus.startScan();
     while (!isConnected) {
       try {
         print("Attempting to connect to ${device.remoteId}");
@@ -79,7 +80,7 @@ class DexcomReader {
       BluetoothCharacteristic characteristic) async {
     try {
       await characteristic.setNotifyValue(true);
-      _deviceSubscription = characteristic.value.distinct().listen(
+      _deviceSubscription = characteristic.lastValueStream.distinct().listen(
         (data) {
           _statusController.add(DexcomDeviceStatus.connected);
           _mtuPacketsController.add(data);

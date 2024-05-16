@@ -22,12 +22,16 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
   StreamSubscription<List<BluetoothDevice>>? dexDeviceScanningSubscription;
 
   Future<void> scanAndReadDevices() async {
+    print("Scanning for devices");
     if (!isScanning) {
       setState(() => isScanning = true);
+      print("Now loading, isScanning: $isScanning");
       bool foundDevices = false;
       while (!foundDevices) {
         try {
-          dexcomReader.scanForAllDexcomDevices();
+          print("Scanning for devices");
+          await dexcomReader.scanForAllDexcomDevices();
+          print("Setting up listener");
           dexDeviceScanningSubscription =
               dexcomReader.deviceStream.distinct().listen((btDexDevices) {
             setState(() {
@@ -36,6 +40,23 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
             });
           });
         } catch (e) {}
+      }
+    }
+    setState(() => isScanning = false);
+  }
+
+  Future<void> addAndReadDevice(String deviceIdentifier) async {
+    if(!isScanning) {
+      setState(() => isScanning = true);
+      bool foundDevice = false;
+      while (!foundDevice) {
+        try {
+          dexcomReader.connectWithId(deviceIdentifier);
+          dexDeviceScanningSubscription = dexcomReader.deviceStream.listen((devicesStream)  {
+
+          });
+        }
+        catch (e) {}
       }
     }
     setState(() => isScanning = false);

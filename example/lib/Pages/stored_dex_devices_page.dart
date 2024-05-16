@@ -34,7 +34,42 @@ class _StoredDexDevicesPageState extends State<StoredDexDevicesPage> {
         title: const Text('Stored Dex Devices'),
       ),
       body: _dexDevices.isEmpty
-          ? Center(child: Text('No known Dexcom devices found.'))
+          ? Center(
+        child: Container(
+          width: MediaQuery.of(context).size.width - 20,
+          child: const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'No known Dexcom devices found.',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Try and scan or add a Dexcom Device and come back later.',
+                  style: TextStyle(fontSize: 20),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Once you have Added/Connected to a device then it will be shown here.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                Text(
+                  'You can then view the latest glucose measurement from the stored device.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                Text(
+                  'More glucose date can be seen by tapping on the stored device.',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      )
           : ListView.builder(
         itemCount: _dexDevices.length,
         itemBuilder: (context, index) {
@@ -44,8 +79,7 @@ class _StoredDexDevicesPageState extends State<StoredDexDevicesPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DexGlucoseListenPage(
-                  ),
+                  builder: (context) => const DexGlucoseListenPage(),
                 ),
               );
             },
@@ -58,4 +92,5 @@ class _StoredDexDevicesPageState extends State<StoredDexDevicesPage> {
       ),
     );
   }
+
 }

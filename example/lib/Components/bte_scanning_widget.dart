@@ -14,7 +14,6 @@ class DexcomSubscribeToDeviceWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("scanning widget wussup $isScanning");
     return Center(
       child: Column(
         children: [
@@ -30,8 +29,8 @@ class DexcomSubscribeToDeviceWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const CircularProgressIndicator(),
-                  const Text("Currently searching for Dexcom Sensor"),
-                  const Text("G7 only sends a signal every 5 minutes..."),
+                  const Text("Currently searching for Dexcom Sensors"),
+                  const Text("G7's only makes itself visible on wake up every 5 minutes.."),
                   ScanButton(
                     isScanning: isScanning,
                     func: scanButtonFunc,

@@ -54,7 +54,7 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
   }
 
   Future<void> subscribeToStream() async {
-    print("SubscribeToStream starting connection attempts... $isScanning");
+    print("SubscribeToStream starting connection attempts");
     if (!isScanning) {
       setState(() => isScanning = true);
       while (autoScan) {
@@ -153,6 +153,7 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
     }
   }
 }
+
 
 /*
   Future<void> scanAndReadDevices() async {

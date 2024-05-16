@@ -6,8 +6,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 enum DexcomDeviceStatus { connected, disconnected }
 
 class DexcomReader {
-  late StreamSubscription<List<int>> _deviceMTUSubscription;
-
   final _statusController = StreamController<DexcomDeviceStatus>();
   final _btDevicesController =
       StreamController<List<BluetoothDevice>>.broadcast();
@@ -21,39 +19,30 @@ class DexcomReader {
   Stream<EGlucoseRxMessage> get glucoseReadings =>
       _glucoseReadingsController.stream;
 
+  StreamSubscription? _deviceMTUSubscription;
+
+
   /// Method that scans for all nearby Dexcom Devices that are currently active
-  /// A G7 BT device would be e.g => device.platformName = 'DXCMHO' and device.remoteId == deviceId. Use device.remoteId of the device you wish to connect to with the method connectWithId()
-  Future<List<BluetoothDevice>> scanForAllDexcomDevices() async {
+  Future<void> scanForAllDexcomDevices() async {
     List<BluetoothDevice> devices = [];
     try {
-      FlutterBluePlus.startScan(
-        timeout: const Duration(seconds: 300),
-      );
-      print("scanning");
-      var subscription = FlutterBluePlus.scanResults.listen((results) {
+      await FlutterBluePlus.startScan(timeout: Duration(seconds: 305));
+      var sub = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult result in results) {
-          if (result.device.platformName.contains('DXC')) {
+          var platformName = result.device.platformName;
+          if (platformName.contains('DXC') && !devices.any((d) => d.platformName == platformName)) {
+            print("Found a new DXC device: $platformName");
             devices.add(result.device);
             _btDevicesController.add(devices);
-            print("Found a new DXC device: ${result.device.platformName}");
           }
         }
       });
-
-      // Wait for the scan to complete
-      await FlutterBluePlus.isScanning
-          .where((isScanning) => isScanning == false)
-          .first;
-
-      // Cleanup: cancel subscription
-      await subscription.cancel();
-      FlutterBluePlus.cancelWhenScanComplete(subscription);
-      return devices;
+      await FlutterBluePlus.isScanning.where((val) => val == false).first;
+      sub.cancel();
+      FlutterBluePlus.stopScan();
     } catch (e) {
       print("Connection failed: $e, retrying connection...");
     }
-    print("devices: ${devices.length}, ${devices.toList().toString()}");
-    return devices;
   }
 
   /// Connect to a specific Dexcom G7 if you know its bluetooth identifier
@@ -64,7 +53,7 @@ class DexcomReader {
     while (!isConnected) {
       try {
         print("Attempting to connect to ${device.remoteId}");
-        await device.connect(); // times out after 35s
+        await device.connect();
         isConnected = true;
       } catch (e) {
         print("Connection failed: $e, retrying connection...");
@@ -76,9 +65,8 @@ class DexcomReader {
       final services = await device.discoverServices();
       for (final service in services) {
         for (final characteristic in service.characteristics) {
-          if (characteristic.properties.notify ||
-              characteristic.properties.indicate) {
-            await subscribeToCharacteristic(characteristic);
+          if (characteristic.properties.notify || characteristic.properties.indicate) {
+            await subscribeToCharacteristic(characteristic, device);
           }
         }
       }
@@ -90,12 +78,11 @@ class DexcomReader {
     }
   }
 
-  Future<void> subscribeToCharacteristic(
-      BluetoothCharacteristic characteristic) async {
+  Future<void> subscribeToCharacteristic(BluetoothCharacteristic characteristic, BluetoothDevice device) async {
     try {
       await characteristic.setNotifyValue(true);
       _deviceMTUSubscription = characteristic.lastValueStream.distinct().listen(
-        (data) {
+            (data) {
           _statusController.add(DexcomDeviceStatus.connected);
           _mtuPacketsController.add(data);
           if (data.length == 19) {
@@ -105,7 +92,11 @@ class DexcomReader {
         },
         onError: (error) {
           print("Error on characteristic value: $error");
-          _statusController.add(DexcomDeviceStatus.disconnected);
+          if (error is FlutterBluePlusException && error.code == 6) {
+            print("Device is disconnected: $error");
+            _statusController.add(DexcomDeviceStatus.disconnected);
+            reconnect(device);
+          }
         },
       );
     } catch (e) {
@@ -114,6 +105,27 @@ class DexcomReader {
     }
   }
 
+  Future<void> reconnect(BluetoothDevice device) async {
+    bool reconnected = false;
+    while (!reconnected) {
+      try {
+        await device.connect();
+        reconnected = true;
+        _statusController.add(DexcomDeviceStatus.connected);
+        final services = await device.discoverServices();
+        for (final service in services) {
+          for (final characteristic in service.characteristics) {
+            if (characteristic.properties.notify || characteristic.properties.indicate) {
+              await subscribeToCharacteristic(characteristic, device);
+            }
+          }
+        }
+      } catch (e) {
+        print("Reconnection failed: $e, retrying...");
+        await Future.delayed(Duration(seconds: 5)); // Wait before retrying
+      }
+    }
+  }
   /// E.g [78, 0, 207, 74, 13, 0, 90, 11, 0, 1, 6, 0, 102, 0, 6, 251, 93, 0, 15] => {"statusRaw":0,"glucose":102,"clock":871119,"timestamp":1712909742781,"unfiltered":0,"filtered":0,"sequence":2906,"glucoseIsDisplayOnly":false,"state":6,"trend":-0.5,"age":6,"valid":true}
   EGlucoseRxMessage decodeGlucosePacket(Uint8List packet) {
     return EGlucoseRxMessage(packet);
@@ -122,11 +134,11 @@ class DexcomReader {
   Future<void> disconnect() async {
     try {
       _statusController.add(DexcomDeviceStatus.disconnected);
-      _deviceMTUSubscription != null ? _deviceMTUSubscription.cancel() : null;
       await Future.wait([
         _statusController.close(),
         _mtuPacketsController.close(),
         _glucoseReadingsController.close(),
+        _btDevicesController.close()
       ]);
     } catch (e) {
       print("Error during disconnect: $e");

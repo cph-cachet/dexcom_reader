@@ -56,15 +56,21 @@ class StateStorageService {
 
     List<String>? existingDevices = prefs.getStringList("/knownDexDevices") ?? [];
 
-    // Add the new device JSON string to the list
-    existingDevices.add(jsonString);
-    await prefs.setStringList("/knownDexDevices", existingDevices);
+    //!devices.any((d) => d.platformName == platformName)¨
+    print("Is this device already saved: ${!existingDevices.any((d) => d.contains(device.platformName))}");
+    if(!existingDevices.any((d) => d.contains(device.platformName))){
+      // Add the new device JSON string to the list
+      existingDevices.add(jsonString);
+      await prefs.setStringList("/knownDexDevices", existingDevices);
+      print("device saved");
+    }
+
   }
 
   Future<List<DexDevice>> getKnownDexDevicesIfExist() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? devicesStringList = prefs.getStringList("/knownDexDevices");
-
+    print("Getting stringList: $devicesStringList");
     if (devicesStringList == null) return [];
 
     // Map each JSON string to a DexDevice instance

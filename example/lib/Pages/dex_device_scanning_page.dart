@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:dexcom_reader/dexcom_reader.dart';
-import 'package:dexcom_reader_example/Components/dexcom_device_card.dart';
+import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
+import 'package:dexcom_reader_example/models/dexdevice.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../Components/bte_scanning_widget.dart';
@@ -22,38 +24,45 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
   @override
   void initState() {
     super.initState();
-    //subscribeToDevicesStream();
   }
 
   Future<void> scanAndReadDevices() async {
-    print("SubscribeToStream starting connection attempts... $isScanning");
+    print("scan for Dexcom devices...");
     if (!isScanning) {
       setState(() => isScanning = true);
       while (autoScan) {
-        bool connected = false;
-        while (!connected) {
+        bool scanning = false;
+        while (!scanning) {
           try {
-            await dexcomReader.scanForAllDexcomDevices();
-            connected = true;
+            dexcomReader.scanForAllDexcomDevices();
+
+            // Listen for the next 300 seconds
+            await dexDeviceScanningSubscription?.cancel();
+            await Future.delayed(Duration(milliseconds: 50));
+            dexDeviceScanningSubscription = dexcomReader.deviceStream.listen(
+              (btDexDevices) {
+                setState(() {
+                  print(
+                      "deviceStream adding: ${btDexDevices.toList().toString()}");
+                  scannedDevices = btDexDevices;
+                });
+              },
+              onError: (error) {
+                print("Error listening to device stream: $error");
+              },
+            );
+            await Future.delayed(Duration(seconds: 300));
+            await dexcomReader.disconnect();
+            scanning = true;
           } catch (e) {
             print("Scanning failed: $e");
           }
         }
-
-        if (connected) {
-          dexDeviceScanningSubscription?.cancel();
-          dexDeviceScanningSubscription =
-              dexcomReader.deviceStream.listen((btDexDevices) {
-            setState(() {
-              scannedDevices = btDexDevices;
-            });
-          });
-        }
       }
-      await dexcomReader.disconnect(); // Important remember to clean the controllers.
-    } else {
       setState(() => isScanning = false);
     }
+    setState(() => isScanning = false);
+    dexcomReader.disconnect();
   }
 
   @override
@@ -87,14 +96,69 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
         shrinkWrap: true,
         itemCount: scannedDevices.length,
         itemBuilder: (BuildContext context, int index) {
-          return DexcomDeviceCard(
-            latestGlucosePacket: null,
-            dexDevice: scannedDevices[index],
+          return dexBTDeviceCard(
+            scannedDevices[index],
           );
         },
       );
     }
   }
+
+  Widget dexBTDeviceCard(BluetoothDevice dexDevice) {
+    return InkWell(
+      onTap: () {
+        StateStorageService stateStorageService = StateStorageService();
+        stateStorageService.saveDexcomDevice(DexDevice(
+            remoteId: dexDevice.remoteId,
+            platformName: dexDevice.platformName));
+      },
+      child: Container(
+        padding: EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          border: Border.all(),
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 12,
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "Device: ${dexDevice.platformName.isEmpty ? dexDevice.advName : dexDevice.platformName}",
+                    style: GoogleFonts.roboto(
+                        fontSize: dexDevice.platformName.isEmpty ? 14 : 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 4), // Add some spacing between the texts
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "Tap to store this device for monitoring and for connecting later",
+                    style: GoogleFonts.roboto(
+                        fontSize: 12,
+                        color: Colors.grey.withOpacity(0.7),
+                        fontWeight: FontWeight.w400),
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              height: 2,
+              color: Colors.grey,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }
 
 /*

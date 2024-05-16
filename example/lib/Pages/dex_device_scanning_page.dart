@@ -68,6 +68,7 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
   @override
   void dispose() {
     dexDeviceScanningSubscription?.cancel();
+    dexcomReader.disconnect();
     super.dispose();
   }
 
@@ -111,50 +112,18 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
         stateStorageService.saveDexcomDevice(DexDevice(
             remoteId: dexDevice.remoteId,
             platformName: dexDevice.platformName));
+        /*
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const DexGlucoseListenPage(),
+          ),
+        );
+         */
       },
-      child: Container(
-        padding: EdgeInsets.all(8.0),
-        decoration: BoxDecoration(
-          border: Border.all(),
-        ),
-        child: Column(
-          children: [
-            Container(
-              height: 12,
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    "Device: ${dexDevice.platformName.isEmpty ? dexDevice.advName : dexDevice.platformName}",
-                    style: GoogleFonts.roboto(
-                        fontSize: dexDevice.platformName.isEmpty ? 14 : 20,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 4), // Add some spacing between the texts
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    "Tap to store this device for monitoring and for connecting later",
-                    style: GoogleFonts.roboto(
-                        fontSize: 12,
-                        color: Colors.grey.withOpacity(0.7),
-                        fontWeight: FontWeight.w400),
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              height: 2,
-              color: Colors.grey,
-            ),
-          ],
-        ),
+      child: ListTile(
+        title: Text("G7 Device: ${dexDevice.platformName}"),
+        subtitle: Text("BTE remoteID: ${dexDevice.remoteId.str}"),
       ),
     );
   }

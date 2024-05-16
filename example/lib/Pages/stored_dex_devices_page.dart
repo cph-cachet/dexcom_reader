@@ -84,8 +84,8 @@ class _StoredDexDevicesPageState extends State<StoredDexDevicesPage> {
               );
             },
             child: ListTile(
-              title: Text(device.remoteId.id),
-              subtitle: Text(device.platformName),
+              title: Text("G7 Device: ${device.platformName}"),
+              subtitle: Text("BTE remoteID: ${device.remoteId.str}"),
             ),
           );
         },

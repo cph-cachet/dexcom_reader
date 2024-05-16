@@ -9,7 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class DexGlucoseListenPage extends StatefulWidget {
-  const DexGlucoseListenPage({super.key});
+  final BluetoothDevice device;
+  const DexGlucoseListenPage({super.key, required this.device});
 
   @override
   _DexGlucoseListenPageState createState() => _DexGlucoseListenPageState();
@@ -28,6 +29,9 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
   @override
   void initState() {
     super.initState();
+    setState(() {
+      devices.add(widget.device);
+    });
     getLastPacket();
   }
 
@@ -119,7 +123,7 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('BLE Scanner')),
+      appBar: AppBar(title: Text('G7 ${widget.device.platformName}')),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [

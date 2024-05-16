@@ -6,40 +6,54 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 enum DexcomDeviceStatus { connected, disconnected }
 
 class DexcomReader {
-  late StreamSubscription<List<int>> _deviceSubscription;
+  late StreamSubscription<List<int>> _deviceMTUSubscription;
 
   final _statusController = StreamController<DexcomDeviceStatus>();
-  final _deviceController = StreamController<List<BluetoothDevice>>.broadcast();
+  final _btDevicesController =
+      StreamController<List<BluetoothDevice>>.broadcast();
   final _mtuPacketsController = StreamController<List<int>>.broadcast();
-  final _glucoseReadingsController = StreamController<EGlucoseRxMessage>.broadcast();
+  final _glucoseReadingsController =
+      StreamController<EGlucoseRxMessage>.broadcast();
 
   Stream<DexcomDeviceStatus> get dexcomDeviceStatus => _statusController.stream;
-  Stream<List<BluetoothDevice>> get deviceStream => _deviceController.stream;
+  Stream<List<BluetoothDevice>> get deviceStream => _btDevicesController.stream;
   Stream<List<int>> get mtuPackets => _mtuPacketsController.stream;
-  Stream<EGlucoseRxMessage> get glucoseReadings => _glucoseReadingsController.stream;
-
+  Stream<EGlucoseRxMessage> get glucoseReadings =>
+      _glucoseReadingsController.stream;
 
   /// Method that scans for all nearby Dexcom Devices that are currently active
   /// A G7 BT device would be e.g => device.platformName = 'DXCMHO' and device.remoteId == deviceId. Use device.remoteId of the device you wish to connect to with the method connectWithId()
-  Future<void> scanForAllDexcomDevices() async {
-    print("SETTING UP SCAN");
+  Future<List<BluetoothDevice>> scanForAllDexcomDevices() async {
     List<BluetoothDevice> devices = [];
-    await FlutterBluePlus.startScan(
-        timeout: const Duration(
-            seconds:
-            310)); //Scan for a select amount of time. G7's output every 300-310 seconds
-
-    var subscription = FlutterBluePlus.scanResults.listen((results) {
-      for (ScanResult result in results) {
-        if (result.device.platformName.contains('DXC')) {
-          devices.add(result.device);
-          _deviceController.add(devices);
-          print("Found a new DXC device: ${result.device.platformName}");
+    try {
+      FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 300),
+      );
+      print("scanning");
+      var subscription = FlutterBluePlus.scanResults.listen((results) {
+        for (ScanResult result in results) {
+          if (result.device.platformName.contains('DXC')) {
+            devices.add(result.device);
+            _btDevicesController.add(devices);
+            print("Found a new DXC device: ${result.device.platformName}");
+          }
         }
-      }
-    });
-    await FlutterBluePlus.stopScan();
-    await subscription.cancel();
+      });
+
+      // Wait for the scan to complete
+      await FlutterBluePlus.isScanning
+          .where((isScanning) => isScanning == false)
+          .first;
+
+      // Cleanup: cancel subscription
+      await subscription.cancel();
+      FlutterBluePlus.cancelWhenScanComplete(subscription);
+      return devices;
+    } catch (e) {
+      print("Connection failed: $e, retrying connection...");
+    }
+    print("devices: ${devices.length}, ${devices.toList().toString()}");
+    return devices;
   }
 
   /// Connect to a specific Dexcom G7 if you know its bluetooth identifier
@@ -80,7 +94,7 @@ class DexcomReader {
       BluetoothCharacteristic characteristic) async {
     try {
       await characteristic.setNotifyValue(true);
-      _deviceSubscription = characteristic.lastValueStream.distinct().listen(
+      _deviceMTUSubscription = characteristic.lastValueStream.distinct().listen(
         (data) {
           _statusController.add(DexcomDeviceStatus.connected);
           _mtuPacketsController.add(data);
@@ -105,11 +119,10 @@ class DexcomReader {
     return EGlucoseRxMessage(packet);
   }
 
-
   Future<void> disconnect() async {
     try {
       _statusController.add(DexcomDeviceStatus.disconnected);
-      _deviceSubscription != null ? _deviceSubscription.cancel() : null;
+      _deviceMTUSubscription != null ? _deviceMTUSubscription.cancel() : null;
       await Future.wait([
         _statusController.close(),
         _mtuPacketsController.close(),
@@ -119,5 +132,4 @@ class DexcomReader {
       print("Error during disconnect: $e");
     }
   }
-
 }

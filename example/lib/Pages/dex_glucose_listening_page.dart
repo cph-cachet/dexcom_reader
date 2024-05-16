@@ -7,7 +7,6 @@ import 'package:dexcom_reader_example/Components/dexcom_device_card.dart';
 import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class DexGlucoseListenPage extends StatefulWidget {
   const DexGlucoseListenPage({super.key});
@@ -69,8 +68,6 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
             if (e.toString().contains("connection canceled") ||
                 e.toString().contains("timeout")) {
               print("Connection failed: $e, retrying...");
-            } else {
-              break;
             }
           }
         }

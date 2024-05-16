@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:dexcom_reader/dexcom_reader.dart';
 import 'package:dexcom_reader_example/Components/dexcom_device_card.dart';
-import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../Components/bte_scanning_widget.dart';
@@ -15,51 +14,52 @@ class DexDeviceScanningPage extends StatefulWidget {
 
 class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
   final DexcomReader dexcomReader = DexcomReader();
-  final StateStorageService stateStorageService = StateStorageService();
-  BluetoothDevice? latestDexcomDevice;
   bool isScanning = false;
+  bool autoScan = true;
   List<BluetoothDevice> scannedDevices = [];
   StreamSubscription<List<BluetoothDevice>>? dexDeviceScanningSubscription;
 
-  Future<void> scanAndReadDevices() async {
-    print("Scanning for devices");
-    if (!isScanning) {
-      setState(() => isScanning = true);
-      print("Now loading, isScanning: $isScanning");
-      bool foundDevices = false;
-      while (!foundDevices) {
-        try {
-          print("Scanning for devices");
-          await dexcomReader.scanForAllDexcomDevices();
-          print("Setting up listener");
-          dexDeviceScanningSubscription =
-              dexcomReader.deviceStream.distinct().listen((btDexDevices) {
-            setState(() {
-              scannedDevices = btDexDevices;
-              foundDevices = true;
-            });
-          });
-        } catch (e) {}
-      }
-    }
-    setState(() => isScanning = false);
+  @override
+  void initState() {
+    super.initState();
+    //subscribeToDevicesStream();
   }
 
-  Future<void> addAndReadDevice(String deviceIdentifier) async {
-    if(!isScanning) {
+  Future<void> scanAndReadDevices() async {
+    print("SubscribeToStream starting connection attempts... $isScanning");
+    if (!isScanning) {
       setState(() => isScanning = true);
-      bool foundDevice = false;
-      while (!foundDevice) {
-        try {
-          dexcomReader.connectWithId(deviceIdentifier);
-          dexDeviceScanningSubscription = dexcomReader.deviceStream.listen((devicesStream)  {
+      while (autoScan) {
+        bool connected = false;
+        while (!connected) {
+          try {
+            await dexcomReader.scanForAllDexcomDevices();
+            connected = true;
+          } catch (e) {
+            print("Scanning failed: $e");
+          }
+        }
 
+        if (connected) {
+          dexDeviceScanningSubscription?.cancel();
+          dexDeviceScanningSubscription =
+              dexcomReader.deviceStream.listen((btDexDevices) {
+            setState(() {
+              scannedDevices = btDexDevices;
+            });
           });
         }
-        catch (e) {}
       }
+      await dexcomReader.disconnect(); // Important remember to clean the controllers.
+    } else {
+      setState(() => isScanning = false);
     }
-    setState(() => isScanning = false);
+  }
+
+  @override
+  void dispose() {
+    dexDeviceScanningSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -96,3 +96,20 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
     }
   }
 }
+
+/*
+Future<void> addAndReadDevice(String deviceIdentifier) async {
+    if (!isScanning) {
+      setState(() => isScanning = true);
+      bool foundDevice = false;
+      while (!foundDevice) {
+        try {
+          dexcomReader.connectWithId(deviceIdentifier);
+          dexDeviceScanningSubscription =
+              dexcomReader.deviceStream.listen((devicesStream) {});
+        } catch (e) {}
+      }
+    }
+    setState(() => isScanning = false);
+  }
+ */

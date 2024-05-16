@@ -29,8 +29,10 @@ class DexcomSubscribeToDeviceWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const CircularProgressIndicator(),
-                  const Text("Currently searching for Dexcom Sensors"),
-                  const Text("G7's only makes itself visible on wake up every 5 minutes.."),
+                  const Text("Currently searching for Dexcom Sensors", style: TextStyle(fontSize: 15),),
+                  SizedBox(height: 6,),
+                  const Text("G7 makes itself visible on wake up every 5 minutes..", style: TextStyle(fontSize: 12),),
+                  SizedBox(height: 6,),
                   ScanButton(
                     isScanning: isScanning,
                     func: scanButtonFunc,

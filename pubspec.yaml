@@ -1,4 +1,4 @@
-name: dexcom_reader
+n bmame: dexcom_reader
 description: "A new Flutter plugin project."
 version: 0.0.1
 homepage:
@@ -14,7 +14,6 @@ dependencies:
   flutter_blue_plus: ^1.31.16
   permission_handler: any
   google_fonts: ^6.2.1
-
 
 dev_dependencies:
   flutter_test:

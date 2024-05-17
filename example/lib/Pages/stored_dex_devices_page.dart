@@ -1,4 +1,4 @@
-import 'package:dexcom_reader_example/Pages/dex_glucose_listening_page.dart';
+import 'package:dexcom_reader_example/Pages/dex_deviceBg_listening_page.dart';
 import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
 import 'package:dexcom_reader_example/models/dexdevice.dart';
 import 'package:flutter/material.dart';
@@ -81,7 +81,7 @@ class _StoredDexDevicesPageState extends State<StoredDexDevicesPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DexGlucoseListenPage(
+                        builder: (context) => DexDeviceBgListenPage(
                           device: BluetoothDevice(remoteId: dexDevice.remoteId),
                         ),
                       ),

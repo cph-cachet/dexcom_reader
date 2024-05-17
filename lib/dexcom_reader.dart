@@ -6,7 +6,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 enum DexcomDeviceStatus { connected, disconnected }
 
 class DexcomReader {
-  final _statusController = StreamController<DexcomDeviceStatus>();
+  final _statusController = StreamController<DexcomDeviceStatus>.broadcast();
   final _btDevicesController =
       StreamController<List<BluetoothDevice>>.broadcast();
   final _mtuPacketsController = StreamController<List<int>>.broadcast();
@@ -21,6 +21,13 @@ class DexcomReader {
 
   StreamSubscription? _deviceMTUSubscription;
 
+  /// Dispose controllers
+  void dispose() {
+    _statusController.close();
+    _btDevicesController.close();
+    _mtuPacketsController.close();
+    _glucoseReadingsController.close();
+  }
 
   /// Method that scans for all nearby Dexcom Devices that are currently active
   Future<void> scanForAllDexcomDevices() async {
@@ -30,7 +37,8 @@ class DexcomReader {
       var sub = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult result in results) {
           var platformName = result.device.platformName;
-          if (platformName.contains('DXC') && !devices.any((d) => d.platformName == platformName)) {
+          if (platformName.contains('DXC') &&
+              !devices.any((d) => d.platformName == platformName)) {
             print("Found a new DXC device: $platformName");
             devices.add(result.device);
             _btDevicesController.add(devices);
@@ -65,7 +73,8 @@ class DexcomReader {
       final services = await device.discoverServices();
       for (final service in services) {
         for (final characteristic in service.characteristics) {
-          if (characteristic.properties.notify || characteristic.properties.indicate) {
+          if (characteristic.properties.notify ||
+              characteristic.properties.indicate) {
             await subscribeToCharacteristic(characteristic, device);
           }
         }
@@ -78,11 +87,12 @@ class DexcomReader {
     }
   }
 
-  Future<void> subscribeToCharacteristic(BluetoothCharacteristic characteristic, BluetoothDevice device) async {
+  Future<void> subscribeToCharacteristic(
+      BluetoothCharacteristic characteristic, BluetoothDevice device) async {
     try {
       await characteristic.setNotifyValue(true);
       _deviceMTUSubscription = characteristic.lastValueStream.distinct().listen(
-            (data) {
+        (data) {
           _statusController.add(DexcomDeviceStatus.connected);
           _mtuPacketsController.add(data);
           if (data.length == 19) {
@@ -95,7 +105,6 @@ class DexcomReader {
           if (error is FlutterBluePlusException && error.code == 6) {
             print("Device is disconnected: $error");
             _statusController.add(DexcomDeviceStatus.disconnected);
-            reconnect(device);
           }
         },
       );
@@ -105,28 +114,6 @@ class DexcomReader {
     }
   }
 
-  Future<void> reconnect(BluetoothDevice device) async {
-    bool reconnected = false;
-    while (!reconnected) {
-      try {
-        await device.connect();
-        reconnected = true;
-        _statusController.add(DexcomDeviceStatus.connected);
-        final services = await device.discoverServices();
-        for (final service in services) {
-          for (final characteristic in service.characteristics) {
-            if (characteristic.properties.notify || characteristic.properties.indicate) {
-              await subscribeToCharacteristic(characteristic, device);
-            }
-          }
-        }
-      } catch (e) {
-        print("Reconnection failed: $e, retrying...");
-        await Future.delayed(Duration(seconds: 5)); // Wait before retrying
-      }
-    }
-  }
-  /// E.g [78, 0, 207, 74, 13, 0, 90, 11, 0, 1, 6, 0, 102, 0, 6, 251, 93, 0, 15] => {"statusRaw":0,"glucose":102,"clock":871119,"timestamp":1712909742781,"unfiltered":0,"filtered":0,"sequence":2906,"glucoseIsDisplayOnly":false,"state":6,"trend":-0.5,"age":6,"valid":true}
   EGlucoseRxMessage decodeGlucosePacket(Uint8List packet) {
     return EGlucoseRxMessage(packet);
   }

@@ -78,7 +78,8 @@ class _DexcomDeviceDetailsPageState extends State<DexcomDeviceDetailsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text("Glucose: ${packet.glucose} mmol/L"),
-            Text("Trend: ${packet.trend}"),
+            //Text("Trend: ${packet.trend}"),
+            Text("Age: ${convertTimeStampToDatetime(packet.age)}"),
             Text("Timestamp: ${convertTimeStampToDatetime(packet.timestamp)}"),
           ],
         ));

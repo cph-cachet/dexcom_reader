@@ -8,15 +8,15 @@ import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-class DexGlucoseListenPage extends StatefulWidget {
+class DexDeviceBgListenPage extends StatefulWidget {
   final BluetoothDevice device;
-  const DexGlucoseListenPage({super.key, required this.device});
+  const DexDeviceBgListenPage({super.key, required this.device});
 
   @override
-  _DexGlucoseListenPageState createState() => _DexGlucoseListenPageState();
+  _DexDeviceBgListenPageState createState() => _DexDeviceBgListenPageState();
 }
 
-class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
+class _DexDeviceBgListenPageState extends State<DexDeviceBgListenPage> {
   final DexcomReader dexcomReader = DexcomReader();
   final StateStorageService stateStorageService = StateStorageService();
   DexGlucosePacket? latestGlucosePacket;
@@ -29,22 +29,25 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
   @override
   void initState() {
     super.initState();
-    setState(() {
-      devices.add(widget.device);
-    });
+    devices.add(widget.device);
     getLastPacket();
   }
 
   @override
   void dispose() {
-    glucoseReadingsSubscription?.cancel();
-    dexcomReader.disconnect();
+    cancelSubscription();
+    dexcomReader.dispose();
     super.dispose();
+  }
+
+  void cancelSubscription() {
+    glucoseReadingsSubscription?.cancel();
+    glucoseReadingsSubscription = null;
   }
 
   Future<void> getLastPacket() async {
     DexGlucosePacket? packet =
-        await stateStorageService.getLatestDexGlucosePacket();
+    await stateStorageService.getLatestDexGlucosePacket();
     if (packet != null && packet.deviceIdentifier.str.isNotEmpty) {
       List<DexGlucosePacket>? packets = await stateStorageService
           .getGlucosePacketReadings(packet.deviceIdentifier);
@@ -76,22 +79,24 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
           }
         }
         if (connected) {
-          glucoseReadingsSubscription?.cancel();
+          // Cancel any existing subscription before starting a new one
+          cancelSubscription();
+          await Future.delayed(Duration(milliseconds: 50));
           glucoseReadingsSubscription =
               dexcomReader.glucoseReadings.distinct().listen(
-            (reading) {
-              setLatestPacket(
-                  reading,
-                  BluetoothDevice(
-                      remoteId: latestGlucosePacket!.deviceIdentifier));
-            },
-          );
+                    (reading) {
+                  setLatestPacket(
+                      reading,
+                      BluetoothDevice(
+                          remoteId: latestGlucosePacket!.deviceIdentifier));
+                },
+              );
         }
       }
-      await dexcomReader.disconnect();
+      setState(() => isScanning = false);
+      print("Just unsubbed and will scan sub again: $autoScan");
+      if(autoScan) subscribeToStream();
     }
-    await dexcomReader.disconnect();
-    setState(() => isScanning = false);
   }
 
   void setLatestPacket(EGlucoseRxMessage reading, BluetoothDevice device) {
@@ -144,15 +149,9 @@ class _DexGlucoseListenPageState extends State<DexGlucoseListenPage> {
     if (devices.isEmpty) {
       return Center(child: Text("No devices found"));
     } else {
-      return ListView.builder(
-        shrinkWrap: true,
-        itemCount: devices.length,
-        itemBuilder: (BuildContext context, int index) {
-          return DexcomDeviceCard(
-            latestGlucosePacket: latestGlucosePacket,
-            dexDevice: devices[index],
-          );
-        },
+      return DexcomDeviceCard(
+        latestGlucosePacket: latestGlucosePacket,
+        dexDevice: devices.first,
       );
     }
   }

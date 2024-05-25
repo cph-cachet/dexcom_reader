@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:dexcom_reader/dexcom_reader.dart';
 import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
 import 'package:dexcom_reader_example/models/dexdevice.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../Components/bte_scanning_widget.dart';

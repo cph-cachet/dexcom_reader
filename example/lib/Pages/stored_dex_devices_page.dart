@@ -2,6 +2,7 @@ import 'package:dexcom_reader_example/Pages/dex_glucose_listening_page.dart';
 import 'package:dexcom_reader_example/StateStorage/state_storage_service.dart';
 import 'package:dexcom_reader_example/models/dexdevice.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class StoredDexDevicesPage extends StatefulWidget {
   const StoredDexDevicesPage({super.key});
@@ -73,13 +74,13 @@ class _StoredDexDevicesPageState extends State<StoredDexDevicesPage> {
           : ListView.builder(
         itemCount: _dexDevices.length,
         itemBuilder: (context, index) {
-          final device = _dexDevices[index];
+          final device = BluetoothDevice(remoteId: _dexDevices[index].remoteId);
           return InkWell(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const DexGlucoseListenPage(),
+                  builder: (context) => DexGlucoseListenPage(device: device),
                 ),
               );
             },

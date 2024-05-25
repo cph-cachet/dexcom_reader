@@ -1,6 +1,6 @@
-n bmame: dexcom_reader
+name: dexcom_reader
 description: "A new Flutter plugin project."
-version: 0.0.1
+version: 0.1.0
 homepage:
 
 environment:

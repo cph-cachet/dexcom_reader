@@ -32,6 +32,7 @@ dependencies:
   permission_handler: any
   shared_preferences: 2.2.2
   intl: 0.19.0
+  dcdg: 3.0.0
 
 dev_dependencies:
   integration_test:

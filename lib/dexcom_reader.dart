@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:dexcom_reader/plugin/g7/EGlucoseRxMessage.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
+
 enum DexcomDeviceStatus { connected, disconnected }
 
 class DexcomReader {
@@ -18,16 +19,6 @@ class DexcomReader {
   Stream<List<int>> get mtuPackets => _mtuPacketsController.stream;
   Stream<EGlucoseRxMessage> get glucoseReadings =>
       _glucoseReadingsController.stream;
-
-  StreamSubscription? _deviceMTUSubscription;
-
-  /// Dispose controllers
-  void dispose() {
-    _statusController.close();
-    _btDevicesController.close();
-    _mtuPacketsController.close();
-    _glucoseReadingsController.close();
-  }
 
   /// Method that scans for all nearby Dexcom Devices that are currently active
   Future<void> scanForAllDexcomDevices() async {
@@ -63,6 +54,7 @@ class DexcomReader {
         print("Attempting to connect to ${device.remoteId}");
         await device.connect();
         isConnected = true;
+        _statusController.add(DexcomDeviceStatus.connected);
       } catch (e) {
         print("Connection failed: $e, retrying connection...");
       }
@@ -75,11 +67,10 @@ class DexcomReader {
         for (final characteristic in service.characteristics) {
           if (characteristic.properties.notify ||
               characteristic.properties.indicate) {
-            await subscribeToCharacteristic(characteristic, device);
+            await subscribeToCharacteristic(characteristic);
           }
         }
       }
-      _statusController.add(DexcomDeviceStatus.connected);
     } catch (e) {
       print("Error discovering services: $e");
       _statusController.add(DexcomDeviceStatus.disconnected);
@@ -88,34 +79,27 @@ class DexcomReader {
   }
 
   Future<void> subscribeToCharacteristic(
-      BluetoothCharacteristic characteristic, BluetoothDevice device) async {
+      BluetoothCharacteristic characteristic) async {
     try {
+      StreamSubscription? deviceMTUSubscription;
       await characteristic.setNotifyValue(true);
-      _deviceMTUSubscription = characteristic.lastValueStream.distinct().listen(
+      deviceMTUSubscription = characteristic.lastValueStream.distinct().listen(
         (data) {
-          _statusController.add(DexcomDeviceStatus.connected);
           _mtuPacketsController.add(data);
           if (data.length == 19) {
-            final streamMsg = decodeGlucosePacket(Uint8List.fromList(data));
+            final streamMsg = EGlucoseRxMessage(Uint8List.fromList(data));
             _glucoseReadingsController.add(streamMsg);
           }
         },
         onError: (error) {
-          print("Error on characteristic value: $error");
-          if (error is FlutterBluePlusException && error.code == 6) {
-            print("Device is disconnected: $error");
-            _statusController.add(DexcomDeviceStatus.disconnected);
-          }
+          print("Error on reading characteristic values: $error");
         },
       );
     } catch (e) {
       print("Error subscribing to characteristic: $e");
+    } finally {
       _statusController.add(DexcomDeviceStatus.disconnected);
     }
-  }
-
-  EGlucoseRxMessage decodeGlucosePacket(Uint8List packet) {
-    return EGlucoseRxMessage(packet);
   }
 
   Future<void> disconnect() async {
@@ -130,5 +114,13 @@ class DexcomReader {
     } catch (e) {
       print("Error during disconnect: $e");
     }
+  }
+
+  /// Dispose controllers
+  void dispose() {
+    _statusController.close();
+    _btDevicesController.close();
+    _mtuPacketsController.close();
+    _glucoseReadingsController.close();
   }
 }

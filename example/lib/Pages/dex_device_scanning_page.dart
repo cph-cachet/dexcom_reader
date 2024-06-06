@@ -25,43 +25,34 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
     super.initState();
   }
 
-  Future<void> scanAndReadDevices() async {
-    print("scan for Dexcom devices...");
+  Future<void> scanForDevices() async {
     if (!isScanning) {
       setState(() => isScanning = true);
       while (autoScan) {
-        bool scanning = false;
-        while (!scanning) {
-          try {
-            dexcomReader.scanForAllDexcomDevices();
-
-            // Listen for the next 300 seconds
-            await dexDeviceScanningSubscription?.cancel();
-            await Future.delayed(Duration(milliseconds: 50));
-            dexDeviceScanningSubscription = dexcomReader.deviceStream.listen(
-              (btDexDevices) {
-                setState(() {
-                  print(
-                      "deviceStream adding: ${btDexDevices.toList().toString()}");
-                  scannedDevices = btDexDevices;
-                });
-              },
-              onError: (error) {
-                print("Error listening to device stream: $error");
-              },
-            );
-            await Future.delayed(Duration(seconds: 300));
-            await dexcomReader.disconnect();
-            scanning = true;
-          } catch (e) {
-            print("Scanning failed: $e");
-          }
+        // The device will scan indefinitely for Dexcom devices until the autoScan state is changed by pressing the stop scan button
+        try {
+          dexcomReader
+              .scanForAllDexcomDevices(); // We dont wait for this method, we will just setup a subscription to the device stream in scanForAllDexcomDevices() instead
+          await dexDeviceScanningSubscription?.cancel();
+          await Future.delayed(Duration(milliseconds: 50));
+          dexDeviceScanningSubscription = dexcomReader.deviceStream.listen(
+            (btDexDevices) {
+              setState(() {
+                scannedDevices = btDexDevices;
+              });
+            },
+            onError: (error) {
+              print("Error listening to device stream: $error");
+            },
+          );
+        } catch (e) {
+          print("Scanning failed: $e");
+        } finally {
+          dexcomReader.disconnect();
+          setState(() => isScanning = false);
         }
       }
-      setState(() => isScanning = false);
     }
-    setState(() => isScanning = false);
-    dexcomReader.disconnect();
   }
 
   @override
@@ -81,7 +72,7 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
           flex: 2,
           child: DexcomSubscribeToDeviceWidget(
             isScanning: isScanning,
-            scanButtonFunc: scanAndReadDevices,
+            scanButtonFunc: scanForDevices,
           ),
         ),
       ],
@@ -126,7 +117,6 @@ class _DexDeviceScanningPageState extends State<DexDeviceScanningPage> {
       ),
     );
   }
-
 }
 
 /*

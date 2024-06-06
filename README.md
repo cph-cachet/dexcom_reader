@@ -1,16 +1,19 @@
 # dexcom_g7_reader
 
-A new Flutter plugin project.
+This is the dexcom_reader plugin
 
 ## Getting Started
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/developing-packages/),
-a specialized package that includes platform-specific implementation code for
-Android and iOS.
+To start using dexcom_reader, initialise the plugin class :
 
-This plugin requires the user to use the Flutter_Blue_Plus plugin as Dexcom_G7_Reader uses FBP for reading sensor data from a Dexcom device.
+DexcomReader reader = DexcomReader();
 
-The plugin project was generated without specifying the `--platforms` flag, no platforms are currently supported.
-To add platforms, run `flutter create -t plugin --platforms <platforms> .` in this directory.
-You can also find a detailed instruction on how to add platforms in the `pubspec.yaml` at https://flutter.dev/docs/development/packages-and-plugins/developing-packages#plugin-platforms.
+## Scanning for a device
+
+Before data can be read from a Dexcom G7, please use the DexcomReader method scanForAllDexcomDevices() to search for any nearby active devices.
+
+Once a device or devices have been found, you can extract the BluetoothDevice.remoteId and use to connect and read glucose messages.
+
+## Reading messages
+
+Use DexcomReader.connectWithId() once you have a CGM remoteId. It will then listen for incoming messages

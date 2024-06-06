@@ -1,5 +1,5 @@
 name: dexcom_reader
-description: "A new Flutter plugin project."
+description: "This plugin is able to scan, connect and read data from Dexcom CGM devices"
 version: 0.1.0
 homepage:
 
@@ -14,6 +14,7 @@ dependencies:
   flutter_blue_plus: ^1.31.16
   permission_handler: any
   google_fonts: ^6.2.1
+  dcdg: 3.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class ScanButton extends StatelessWidget {
-  bool isScanning;
-  VoidCallback func;
+  final bool isScanning;
+  final VoidCallback func;
 
-  ScanButton({super.key, required this.isScanning, required this.func});
+  const ScanButton({super.key, required this.isScanning, required this.func});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +18,7 @@ class ScanButton extends StatelessWidget {
           onPressed: func,
           child: Text(
             buttonTxt,
-            style: TextStyle(color: Colors.black, fontSize: 18),
+            style: const TextStyle(color: Colors.black, fontSize: 18),
           )),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:dexcom_reader_example/Pages/tabbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:dcdg/dcdg.dart';
 
 
 void main() {

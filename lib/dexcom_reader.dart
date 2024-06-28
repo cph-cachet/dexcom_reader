@@ -24,7 +24,7 @@ class DexcomReader {
   Future<void> scanForAllDexcomDevices() async {
     List<BluetoothDevice> devices = [];
     try {
-      await FlutterBluePlus.startScan(timeout: Duration(seconds: 305));
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 305));
       var sub = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult result in results) {
           var platformName = result.device.platformName;

@@ -1,4 +1,3 @@
-import 'package:dexcom_reader/dexcom_reader.dart';
 import 'package:dexcom_reader/plugin/g7/DexGlucosePacket.dart';
 import 'package:dexcom_reader_example/Components/dexcom_device_details.dart';
 import 'package:flutter/material.dart';
@@ -24,9 +23,7 @@ class DexcomDeviceCard extends StatelessWidget {
         fontSize: 20, color: Colors.white, fontWeight: FontWeight.w500);
     TextStyle tStyle2 = GoogleFonts.montserrat(
         fontSize: 16, color: Colors.grey[700], fontWeight: FontWeight.w500);
-
-    final DexcomReader _dexcomReader = DexcomReader();
-    Radius _radius = const Radius.circular(32.0);
+    Radius radius = const Radius.circular(32.0);
     return InkWell(
       onTap: () async {
         Navigator.push(
@@ -46,7 +43,7 @@ class DexcomDeviceCard extends StatelessWidget {
                 ],
                 color: Colors.lightGreenAccent.withOpacity(0.5),
                 borderRadius: BorderRadius.only(
-                    topLeft: _radius, bottomLeft: _radius, topRight: _radius)),
+                    topLeft: radius, bottomLeft: radius, topRight: radius)),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -30,10 +30,8 @@ class _DexcomDeviceDetailsPageState extends State<DexcomDeviceDetailsPage> {
   }
 
   void loadData() async {
-    print("Getting data for ${widget.identifier.str}");
     List<DexGlucosePacket> r =
         await stateStorageService.getGlucosePacketReadings(widget.identifier);
-    print("foundpackets: ${r.isNotEmpty}, ${r.length}");
     if (mounted) {
       setState(() {
         packets = r;
@@ -49,15 +47,18 @@ class _DexcomDeviceDetailsPageState extends State<DexcomDeviceDetailsPage> {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("G7 Details Page"),
-            SizedBox(height: 32,),
+            const Text("G7 Details Page"),
+            const SizedBox(
+              height: 32,
+            ),
             Expanded(
               // Use Expanded here to fill the remaining space
               child: ListView.builder(
                 itemCount: packets.length,
                 itemBuilder: (BuildContext context, int index) {
                   return Padding(
-                    padding: EdgeInsets.only(top: 16, left: 12, right: 16),
+                    padding:
+                        const EdgeInsets.only(top: 16, left: 12, right: 16),
                     child: packetRow(packets[index]),
                   );
                 },

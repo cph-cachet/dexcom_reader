@@ -14,8 +14,7 @@ dependencies:
   flutter_blue_plus: ^1.31.16
   permission_handler: any
   google_fonts: ^6.2.1
-  dcdg: 3.0.0
-
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

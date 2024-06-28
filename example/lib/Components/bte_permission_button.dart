@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 class BTEPermissionButton extends StatelessWidget {
-  VoidCallback func;
+  final VoidCallback func;
 
-  BTEPermissionButton({super.key, required this.func});
+  const BTEPermissionButton({super.key, required this.func});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,7 @@ class BTEPermissionButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: TextButton(
           onPressed: func,
-          child: Text(
+          child: const Text(
             "Request Bluetooth Permission",
             style: TextStyle(color: Colors.black, fontSize: 18),
           )),
